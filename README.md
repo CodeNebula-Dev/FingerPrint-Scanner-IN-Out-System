@@ -7,7 +7,7 @@
 1. Problem Statement
 2. Proposed Solution
 3. System Overview
-4. Core Logic -- The Parity Model
+4. Core Logic -- The State Transition Model
 5. Purpose Selection and the HOME Workflow
 6. Curfew Monitoring
 7. Database Architecture
@@ -57,7 +57,7 @@ The system is composed of four major layers:
 
 **Database Engine Layer (C++)** -- A custom-built database engine written in C++ from scratch. This is the performance-critical core of the system. It handles all raw data storage, retrieval, indexing, and file I/O for the three databases (Master, Daily Log, and Home). C++ is chosen here because gate scans demand near-instant lookup latency -- the biometric template matching and record fetching must happen in milliseconds, and C++ gives direct control over memory layout, binary file operations, and hashing algorithms without interpreter overhead.
 
-**Application Layer (Python)** -- Everything above the database engine is written in Python. This includes the parity-based status logic, purpose selection flow, HOME approval workflow, curfew monitoring, session management, Excel export, and all control panel UI. Python is chosen for this layer because it offers rapid development, cleaner code for business logic, rich library support (for Excel generation, UI frameworks, and future web integration), and easier maintenance. Python communicates with the C++ database engine through bindings (such as ctypes, pybind11, or a subprocess-based interface), sending queries and receiving structured results.
+**Application Layer (Python)** -- Everything above the database engine is written in Python. This includes the state transition status logic, purpose selection flow, HOME approval workflow, curfew monitoring, session management, Excel export, and all control panel UI. Python is chosen for this layer because it offers rapid development, cleaner code for business logic, rich library support (for Excel generation, UI frameworks, and future web integration), and easier maintenance. Python communicates with the C++ database engine through bindings (such as ctypes, pybind11, or a subprocess-based interface), sending queries and receiving structured results.
 
 **Data Layer** -- Three distinct data stores, all managed by the C++ engine:
 - A Master Database (Student_data) holding all enrolled student records.
@@ -88,7 +88,7 @@ C++ is necessary here because these operations sit directly in the critical path
 
 All application logic, workflows, and the user interface are written in Python. This includes:
 
-- The parity model for status derivation (IN/OUT computation).
+- The state transition model for status derivation (IN/OUT computation).
 - Purpose selection handling and the HOME approval workflow.
 - Curfew monitoring and the "still outside" list generation.
 - Session management (start, resume, end).
@@ -110,32 +110,30 @@ The choice among these will be finalised during implementation, but the principl
 
 ---
 
-## 5. Core Logic -- The Parity Model
+## 5. Core Logic -- The State Transition Model
 
-This is the intellectual foundation of the entire system. Rather than asking each student to press an "IN" or "OUT" button (which is error-prone and adds friction), the system derives their current location purely from how many times they have scanned today.
+Rather than asking each student to press an "IN" or "OUT" button (which is error-prone and adds friction), the system dynamically determines their status by tracking their movement sequence.
 
-The reasoning rests on a simple physical truth: a person starts the day in one location and alternates with every gate crossing.
+Instead of relying on a pure mathematical parity count of daily scans (which is easily desynchronized when a student returns from home leave or external events), the system uses a **State Transition Model**:
 
-### Hosteler (starts day INSIDE)
+1. **First Scan of the Day**:
+   - The status is initialized based on the student's residency type:
+     - **Hosteller** (starts day INSIDE): First scan marks them as **OUTSIDE** (`OUT`).
+     - **Day Scholar** (starts day OUTSIDE): First scan marks them as **INSIDE** (`IN`).
+2. **Subsequent Scans**:
+   - If the student has already scanned today, the system simply toggles their previous daily status (`IN` becomes `OUT`, and `OUT` becomes `IN`).
 
-- Scan count is odd --> the student has crossed an odd number of times --> they are now OUTSIDE.
-- Scan count is even --> the student has crossed back --> they are now INSIDE.
+This ensures that status transitions are perfectly sequential and self-correcting regardless of external database updates.
 
-### Day Scholar (starts day OUTSIDE)
+### State Transition Reference Table
 
-- Scan count is odd --> the student has crossed into campus --> they are now INSIDE.
-- Scan count is even --> the student has left again --> they are now OUTSIDE.
+| Scan Scenario | Student Type | Derived Status |
+|---------------|--------------|----------------|
+| First Scan    | Hosteller    | OUTSIDE (`OUT`)|
+| First Scan    | Day Scholar  | INSIDE (`IN`)  |
+| Toggle Scan   | Hosteller/Day Scholar | Opposite of previous daily status |
 
-### Parity Reference Table
-
-| Student Type | Scan Count | Derived Status |
-|--------------|------------|----------------|
-| Hosteler     | Even       | INSIDE         |
-| Hosteler     | Odd        | OUTSIDE        |
-| Day Scholar  | Odd        | INSIDE         |
-| Day Scholar  | Even       | OUTSIDE        |
-
-The residency type (hosteler or day scholar) is stored as a boolean field in the master database and is fetched alongside the student's name on every scan. This means the system never needs to ask the student anything about direction -- the count alone is sufficient.
+The residency type (hosteler or day scholar) is stored as a boolean field in the master database and is fetched alongside the student's name on every scan. This is used to set the initial default status for the first scan of the day.
 
 ---
 
@@ -149,7 +147,7 @@ For any non-HOME purpose, the flow is straightforward:
 1. The student selects their reason.
 2. The timestamp is written immediately.
 3. The scan count increments by one.
-4. The status is recalculated via the parity model.
+4. The status is recalculated via the state transition model.
 5. The record is complete.
 
 If the student selects "Others", they enter a custom reason via keyboard.
@@ -171,10 +169,12 @@ When a student who was approved for HOME returns and scans their fingerprint:
 
 1. The system first checks the HOME database (student_gone_home).
 2. If the student is found there, their name is removed from the HOME database.
-3. An entry-only record is created in the daily log with only the return timestamp filled.
+3. The system checks the daily log database:
+   - If they **already have a log entry today** (e.g. they left for home earlier today), the system increments their gate count, appends the return timestamp, and updates their status to `IN` (with the reason updated to `Home Return`).
+   - If they **do not have a log entry today** (e.g. they left for home on a previous day), a new log entry is created for today with status `IN` and count `1` (reason `Home Return`).
 4. Normal gate tracking resumes from this point.
 
-This two-database approach solves the problem of the original logic, where a student returning from HOME would confuse the parity model (since they never had an exit logged in the daily table for that day).
+This integration resolves the duplicate daily log errors and ensures that returning students are marked inside immediately with correct transaction records.
 
 ---
 
@@ -237,8 +237,8 @@ Each student who scans during the day gets a row in this file. The row accumulat
 | reason                         | string    | Purpose of exit (Market, Exam, Medical, Home, etc.)|
 | entry_time                     | datetime  | Timestamp(s) of entry scans                        |
 | exit_time                      | datetime  | Timestamp(s) of exit scans                         |
-| student_pass_through_gate_count| integer   | Incremented on each scan, drives parity logic      |
-| status                         | enum      | IN or OUT (derived from parity model)              |
+| student_pass_through_gate_count| integer   | Incremented on each scan, tracks total daily gate crossings  |
+| status                         | enum      | IN or OUT (derived from state transition model)    |
 | late_return                    | boolean   | true if the student scanned after 18:30            |
 
 ### 7.3 Home Database (student_gone_home)
@@ -271,7 +271,7 @@ struct student {
 };
 ```
 
-The `uint8_t` type (from the `<cstdint>` header) is explicitly 8 bits wide, making it the natural choice for storing fingerprint templates and serialising them to binary files. The `hosteller` boolean is passed to the Python layer alongside every lookup result so the parity logic can determine the correct status direction.
+The `uint8_t` type (from the `<cstdint>` header) is explicitly 8 bits wide, making it the natural choice for storing fingerprint templates and serialising them to binary files. The `hosteller` boolean is passed to the application layer alongside every lookup result so the state transition logic can determine the correct default direction.
 
 ### C++ Libraries (Database Engine)
 
@@ -309,7 +309,7 @@ The `uint8_t` type (from the `<cstdint>` header) is explicitly 8 bits wide, maki
 ### During the Session
 
 - The system is in a locked recording state. No manual edits are permitted to the daily log while recording is active.
-- Each fingerprint scan triggers the full flow: identity resolution, parity-based status update, purpose selection, and (if applicable) HOME approval.
+- Each fingerprint scan triggers the full flow: identity resolution, state transition status update, purpose selection, and (if applicable) HOME approval.
 
 ### Session End
 
@@ -413,7 +413,7 @@ The project will be built in the following structured phases, respecting the C++
 
 ### Phase 4 -- Core Logic Integration (Python)
 
-- Implement the parity model for status derivation in Python, consuming residency type from C++ lookups.
+- Implement the state transition model for status derivation, consuming residency type from lookups.
 - Build the purpose selection interface at the gate terminal in Python.
 - Implement the HOME approval workflow with the request queue and admin notification.
 - Build the HOME database management (Python calls C++ engine to add on approval, remove on return).
@@ -451,13 +451,11 @@ The project will be built in the following structured phases, respecting the C++
 
 ## 13. Known Flaws and Limitations
 
-### Parity Model Assumptions
+### State Transition Assumptions
 
-The parity model assumes a student always scans at the gate. If a student tailgates (follows someone through without scanning), the count becomes desynchronised. Their status will be inverted from that point forward until an admin manually corrects it, or the count is reset.
+The state transition model assumes a student always scans at the gate. If a student tailgates (follows someone through without scanning), the state sequence becomes desynchronised. Their status will be inverted from that point forward until an admin manually corrects it, or the day rolls over.
 
-### Single-Gate Assumption
-
-The current design assumes a single gate. If the campus has multiple gates, a student could exit through one gate and enter through another. Without a shared, centralised database accessible from all gates in real time, the parity count would become inconsistent.
+The current design assumes a single gate. If the campus has multiple gates, a student could exit through one gate and enter through another. Without a shared, centralised database accessible from all gates in real time, the scan sequence would become inconsistent.
 
 ### Fingerprint Quality Degradation
 
@@ -493,7 +491,7 @@ The C++ database engine must be compiled for the target platform. If the deploym
 
 ### Multi-Gate Support
 
-Deploy scanners at multiple gates, all connecting to the same C++ database engine (potentially exposed over a local network socket). The parity model would still work since the count is stored centrally, not per-gate.
+Deploy scanners at multiple gates, all connecting to the same C++ database engine (potentially exposed over a local network socket). The state transition model would still work since the status and sequence are stored centrally, not per-gate.
 
 ### Evolving the C++ Engine to Support SQL
 
@@ -529,5 +527,5 @@ Implement automatic backup of all databases to a cloud storage provider so that 
 
 ### Tailgating Detection
 
-Integrate with turnstile hardware or infrared sensors to detect when multiple people pass through on a single scan, flagging potential parity desynchronisation.
+Integrate with turnstile hardware or infrared sensors to detect when multiple people pass through on a single scan, flagging potential sequence desynchronisation.
 

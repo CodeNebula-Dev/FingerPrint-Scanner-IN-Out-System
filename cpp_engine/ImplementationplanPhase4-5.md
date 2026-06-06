@@ -469,35 +469,36 @@ The parity model:
     Day Scholar + even count = OUTSIDE
 """
 
-def compute_status(gate_count: int, is_hosteller: bool) -> str:
+def compute_status(has_scanned_today: bool, previous_status: str, is_hosteller: bool) -> str:
     """
-    Returns "IN" or "OUT" based on the parity model.
+    Returns "IN" or "OUT" based on the state transition model.
 
     Args:
-        gate_count: How many times the student has scanned today (>=1).
+        has_scanned_today: True if the student has scanned today.
+        previous_status: The previous daily status ("IN" or "OUT") if scanned today.
         is_hosteller: True if hosteller, False if day scholar.
 
     Returns:
         "IN" or "OUT"
     """
-    if is_hosteller:
-        return "IN" if gate_count % 2 == 0 else "OUT"
+    if not has_scanned_today:
+        return "OUT" if is_hosteller else "IN"
     else:
-        return "IN" if gate_count % 2 != 0 else "OUT"
+        return "OUT" if previous_status == "IN" else "IN"
 
 
-def is_going_out(gate_count: int, is_hosteller: bool) -> bool:
+def is_going_out(has_scanned_today: bool, previous_status: str, is_hosteller: bool) -> bool:
     """Returns True if this scan means the student is now leaving campus."""
-    return compute_status(gate_count, is_hosteller) == "OUT"
+    return compute_status(has_scanned_today, previous_status, is_hosteller) == "OUT"
 
 
-def needs_purpose_selection(gate_count: int, is_hosteller: bool) -> bool:
+def needs_purpose_selection(has_scanned_today: bool, previous_status: str, is_hosteller: bool) -> bool:
     """
     Purpose is only asked when:
       - A hosteller is going OUT (leaving campus)
-      - A day scholar is going IN (entering campus... wait, actually not)
+      - A day scholar is going IN (entering campus)
     """
-    status = compute_status(gate_count, is_hosteller)
+    status = compute_status(has_scanned_today, previous_status, is_hosteller)
     if is_hosteller and status == "OUT":
         return True
     if not is_hosteller and status == "IN":
@@ -657,7 +658,7 @@ class HomeWorkflowManager:
         """
         Handles a student returning from home:
           1. Remove from Home DB
-          2. Create a log entry with reason "Home Return" and status "IN"
+          2. Update or create a log entry with status "IN" and reason "Home Return"
         """
         ew.remove_from_home(roll_number)
 
@@ -666,17 +667,25 @@ class HomeWorkflowManager:
         if student is None:
             return False
 
-        log_record = ew.LogRecord(
-            roll_number=roll_number,
-            name=student.name,
-            year=student.year,
-            reason="Home Return",
-            gate_count=1,
-            status="IN",
-            late_return=False,
-            timestamps=[timestamp],
-        )
-        return ew.add_log_entry(date, log_record)
+        existing = ew.get_log_entry(date, roll_number)
+        if existing is None:
+            log_record = ew.LogRecord(
+                roll_number=roll_number,
+                name=student.name,
+                year=student.year,
+                reason="Home Return",
+                gate_count=1,
+                status="IN",
+                late_return=False,
+                timestamps=[timestamp],
+            )
+            return ew.add_log_entry(date, log_record)
+        else:
+            existing.gate_count += 1
+            existing.reason = "Home Return"
+            existing.status = "IN"
+            existing.timestamps.append(timestamp)
+            return ew.update_log_entry(date, roll_number, existing)
 
     def register_request_callback(self, callback: Callable[[HomeRequest], None]):
         """Register a callback for when a new request arrives (used by UI in Phase 6)."""
@@ -866,12 +875,14 @@ class SessionManager:
             self.home_manager.process_home_return(
                 match.roll_number, self.today, timestamp
             )
+            updated = ew.get_log_entry(self.today, match.roll_number)
+            gate_count = updated.gate_count if updated else 1
             return ScanOutcome(
                 success=True,
                 student_name=match.name,
                 roll_number=match.roll_number,
                 status="IN",
-                gate_count=1,
+                gate_count=gate_count,
                 purpose="Home Return",
                 is_home_return=True,
             )
@@ -891,10 +902,12 @@ class SessionManager:
             timestamps_list = existing.timestamps + [timestamp]
 
         # Step 4: Compute status
-        status = parity.compute_status(gate_count, match.is_hosteller)
+        has_scanned_today = (existing is not None)
+        previous_status = existing.status if existing else ""
+        status = parity.compute_status(has_scanned_today, previous_status, match.is_hosteller)
 
         # Step 5: Check if purpose needed
-        if parity.needs_purpose_selection(gate_count, match.is_hosteller):
+        if parity.needs_purpose_selection(has_scanned_today, previous_status, match.is_hosteller):
             if selected_purpose is None:
                 # Caller needs to ask for purpose and call again
                 return ScanOutcome(
