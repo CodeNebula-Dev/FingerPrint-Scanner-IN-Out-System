@@ -21,6 +21,27 @@ bool deserialize_student(const std::string& filepath, StudentRecord& student) {
     return file.good() || file.gcount() == sizeof(StudentRecord);
 }
 
+bool serialize_fingerprint(const std::string& filepath, const uint8_t* template_data, int length) {
+    std::ofstream file(filepath, std::ios::binary | std::ios::trunc);
+    if (!file.is_open()) {
+        std::cerr << "[Serializer] Error: Cannot open fingerprint file for writing: " << filepath << std::endl;
+        return false;
+    }
+    int write_len = (length < 512) ? length : 512;
+    file.write(reinterpret_cast<const char*>(template_data), write_len);
+    return file.good();
+}
+
+bool deserialize_fingerprint(const std::string& filepath, uint8_t* template_data, int max_length) {
+    std::ifstream file(filepath, std::ios::binary);
+    if (!file.is_open()) {
+        return false;
+    }
+    int read_len = (max_length < 512) ? max_length : 512;
+    file.read(reinterpret_cast<char*>(template_data), read_len);
+    return file.good() || file.gcount() == read_len;
+}
+
 bool serialize_log_entries(const std::string& filepath, const std::vector<LogEntry>& entries) {
     std::ofstream file(filepath, std::ios::binary | std::ios::trunc);
     if (!file.is_open()) {

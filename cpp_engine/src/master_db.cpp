@@ -19,6 +19,11 @@ std::string get_student_file_path(const std::string& batch, const std::string& r
     return (fs::path(g_project_root) / "Student_data" / (batch + "_batch") / (roll_number + ".dat")).string();
 }
 
+// Helper to get fingerprint file path (separate .fpt file)
+std::string get_fingerprint_file_path(const std::string& batch, const std::string& roll_number) {
+    return (fs::path(g_project_root) / "Student_data" / (batch + "_batch") / (roll_number + ".fpt")).string();
+}
+
 // Helper to get student relative file path (for master index)
 std::string get_student_relative_path(const std::string& batch, const std::string& roll_number) {
     return (fs::path("Student_data") / (batch + "_batch") / (roll_number + ".dat")).string();
@@ -76,6 +81,12 @@ bool student_add(const StudentRecord& record) {
     // Serialize student record
     if (!serialize_student(filepath, record)) {
         return false;
+    }
+    
+    // Write separate fingerprint file (.fpt) for easier inspection
+    std::string fpt_path = get_fingerprint_file_path(batch, roll);
+    if (!serialize_fingerprint(fpt_path, record.fingerprint_template, 512)) {
+        std::cerr << "[MasterDB] Warning: Failed to write .fpt file for " << roll << std::endl;
     }
     
     // Update batch index
@@ -150,10 +161,15 @@ bool student_remove(const char* roll_number) {
         return false;
     }
     
-    // Delete student file
+    // Delete student .dat file and .fpt fingerprint file
     try {
         if (fs::exists(filepath)) {
             fs::remove(filepath);
+        }
+        // Also delete the separate fingerprint file
+        std::string fpt_path = get_fingerprint_file_path(batch, roll_number);
+        if (fs::exists(fpt_path)) {
+            fs::remove(fpt_path);
         }
     } catch (const std::exception& e) {
         std::cerr << "[MasterDB] Error removing student file: " << e.what() << std::endl;
@@ -218,6 +234,12 @@ bool student_update(const char* roll_number, const StudentRecord& updated_record
     // Standard overwrite
     if (!serialize_student(filepath, updated_record)) {
         return false;
+    }
+    
+    // Also update the separate fingerprint file
+    std::string fpt_path = get_fingerprint_file_path(batch, roll_number);
+    if (!serialize_fingerprint(fpt_path, updated_record.fingerprint_template, 512)) {
+        std::cerr << "[MasterDB] Warning: Failed to update .fpt file for " << roll_number << std::endl;
     }
     
     // Recompute fingerprint hash and update index
@@ -340,4 +362,33 @@ bool batch_delete(const char* batch) {
         std::cerr << "[MasterDB] Error deleting batch folder: " << e.what() << std::endl;
     }
     return false;
+}
+
+// [DEV ONLY] Wipe all data from the database for a fresh start
+bool engine_wipe_all_data() {
+    try {
+        // Delete all data directories
+        std::string dirs[] = {"Student_data", "Everyday_data", "Home_data", "Rejection_log"};
+        for (const auto& dir : dirs) {
+            fs::path dir_path = fs::path(g_project_root) / dir;
+            if (fs::exists(dir_path)) {
+                fs::remove_all(dir_path);
+                std::cout << "[Engine] Deleted: " << dir_path.string() << std::endl;
+            }
+        }
+        
+        // Clear in-memory fingerprint cache
+        g_fingerprint_cache.clear();
+        
+        // Re-create empty directories so the engine is ready
+        for (const auto& dir : dirs) {
+            fs::create_directories(fs::path(g_project_root) / dir);
+        }
+        
+        std::cout << "[Engine] All data wiped. Fresh directories created." << std::endl;
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "[Engine] Error during data wipe: " << e.what() << std::endl;
+        return false;
+    }
 }

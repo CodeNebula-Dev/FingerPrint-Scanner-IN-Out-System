@@ -46,44 +46,42 @@ MatchResult fingerprint_match(const uint8_t* live_scan, int scan_length) {
     MatchResult result;
     std::memset(&result, 0, sizeof(MatchResult));
     result.matched = false;
+    result.match_count = 0;
     
     if (live_scan == nullptr || scan_length <= 0) {
         return result;
     }
     
-    // Compute FNV-1a hash (for logging/indexing) and spatial hash (for Level 1 coarse filtering)
+    // Compute FNV-1a hash for logging/indexing
     uint32_t live_hash = compute_fnv1a_hash(live_scan, scan_length);
-    uint32_t live_spatial_hash = compute_spatial_hash(live_scan, std::min(scan_length, 512));
     
     std::string best_roll = "";
     float highest_score = 0.0f;
     StudentRecord best_student;
+    int above_threshold_count = 0;
     
-    // Level 1: Coarse Filtering (Filter in-memory cache)
+    // Level 1: Coarse Filtering — load all candidates from in-memory cache
+    // For small databases (<1000), we check all students directly
     std::vector<CachedFingerprint> candidates;
     for (const auto& entry : g_fingerprint_cache) {
-        // Since FNV-1a is cryptographically random, we check spatial hash energy.
-        // We also check exact FNV-1a hash matching.
-        // Let's filter candidates where spatial hashes are reasonably close.
-        // For testing, since mock templates might be exact, we search broadly.
-        // Let's calculate spatial hash of candidate template.
-        // Wait, g_fingerprint_cache stores FNV-1a hashes. If the user uses mock templates,
-        // their FNV-1a hashes will match exactly for exact matches.
-        // For partial matches or noise, let's load and compare.
-        // In our Level 1, we can add all candidates if the cache is small (e.g. < 1000 students),
-        // or check exact/close hashes first.
-        // Let's filter by exact hash first, and if that doesn't yield a high match,
-        // search candidates that are within a small distance.
-        // For testing flexibility, if the database is small, we can check all students.
         candidates.push_back(entry);
     }
     
-    // Level 2: Full Template Comparison
+    // Level 2: Full Template Comparison against all candidates
     for (const auto& candidate : candidates) {
         std::string filepath = (fs::path(g_project_root) / candidate.file_path).string();
         StudentRecord student;
         if (deserialize_student(filepath, student)) {
             float score = compare_templates(live_scan, student.fingerprint_template);
+            
+            // Count ALL students that match above threshold
+            if (score >= MATCH_THRESHOLD) {
+                above_threshold_count++;
+                std::cout << "[Matcher] Candidate match: " << student.name 
+                          << " (" << student.roll_number << ") Score: " << score << std::endl;
+            }
+            
+            // Track the best (highest confidence) match
             if (score > highest_score) {
                 highest_score = score;
                 best_roll = student.roll_number;
@@ -91,6 +89,9 @@ MatchResult fingerprint_match(const uint8_t* live_scan, int scan_length) {
             }
         }
     }
+    
+    // Store total number of matches above threshold
+    result.match_count = above_threshold_count;
     
     // Check if best match exceeds confidence threshold
     if (highest_score >= MATCH_THRESHOLD) {
@@ -104,7 +105,13 @@ MatchResult fingerprint_match(const uint8_t* live_scan, int scan_length) {
         result.is_hosteller = best_student.is_hosteller;
         result.confidence_score = highest_score;
         
-        std::cout << "[Matcher] Match found! Name: " << result.name << ", Confidence: " << highest_score << std::endl;
+        if (above_threshold_count > 1) {
+            std::cout << "[Matcher] WARNING: Multiple entries detected! " 
+                      << above_threshold_count << " students share this fingerprint." << std::endl;
+            std::cout << "[Matcher] Best match: " << result.name << " (Confidence: " << highest_score << ")" << std::endl;
+        } else {
+            std::cout << "[Matcher] Match found! Name: " << result.name << ", Confidence: " << highest_score << std::endl;
+        }
     } else {
         std::cout << "[Matcher] No match found. Best score: " << highest_score << " (Threshold: " << MATCH_THRESHOLD << ")" << std::endl;
     }

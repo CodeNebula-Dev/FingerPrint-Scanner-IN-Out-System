@@ -54,6 +54,7 @@ struct MatchResult {
     char   phone_number[15];
     bool   is_hosteller;
     float  confidence_score;            // Match score from 0.0 to 1.0
+    int    match_count;                 // Number of students matching above threshold
 };
 
 // ==========================================
@@ -63,6 +64,7 @@ struct MatchResult {
 // Utility/Initialization Functions
 bool engine_init(const char* project_root_path);
 void engine_shutdown();
+bool engine_wipe_all_data();  // [DEV ONLY] Deletes all data for a fresh start
 
 // Master Database (Student_data) Operations
 bool student_add(const StudentRecord& record);

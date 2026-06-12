@@ -33,5 +33,6 @@ if(APPLE)
 endif()
 
 # CLI application for testing
-add_executable(gate_cli src/main.cpp)
+# add_executable(gate_cli src/main.cpp)
+add_executable(gate_cli src/main2.0.cpp)
 target_link_libraries(gate_cli PRIVATE gate_engine)
