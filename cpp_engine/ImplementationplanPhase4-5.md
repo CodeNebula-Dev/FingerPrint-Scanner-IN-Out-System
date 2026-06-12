@@ -1071,3 +1071,31 @@ Perform the same test sequence as the [Phase 1-3 verification](file:///Users/dev
 8. Run curfew check → all compliant.
 
 ---
+
+## Security Roadmap -- Fingerprint Template Encryption
+
+> [!IMPORTANT]
+> **Must be implemented before production deployment.**
+
+Currently, all fingerprint templates are stored in plaintext on disk (both `.dat` and `.fpt` files). This is acceptable for development but is a security risk in production.
+
+**Why not hashing?** Hashing is one-way -- it destroys the original data. The matching engine requires the raw 512-byte template for byte-by-byte similarity comparison. Hashing would make fuzzy matching impossible since even one byte difference produces a completely different hash.
+
+**Planned approach: AES-256 encryption at rest.**
+
+| Step | What Happens |
+|------|-------------|
+| Enrollment | Encrypt the 512-byte template with AES-256 before writing to `.dat` / `.fpt` files |
+| Gate scan | Read encrypted template from disk, decrypt in memory, run `compare_templates()` |
+| After match | Zero-wipe the decrypted buffer from memory immediately |
+| Key storage | macOS Keychain, env variable, or hardware security module |
+
+**New files needed:**
+- `cpp_engine/src/crypto.cpp` + `cpp_engine/include/crypto.h` -- AES-256 encrypt/decrypt functions
+- Modifications to `serializer.cpp`, `fingerprint.cpp`, and `engine.h`
+
+**Note**: The FNV-1a hash in `master_index.dat` is NOT a security measure. It is a non-cryptographic 4-byte index used for fast candidate lookup. It is a table of contents, not a lock.
+
+See [GateScanModifications.md Section 7](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/GateScanModifications.md) for full details.
+
+---

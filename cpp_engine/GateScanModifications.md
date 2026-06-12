@@ -238,5 +238,27 @@ The original `main.cpp` is preserved in the source directory as a reference but 
 
 ---
 
+### 7. Security Note -- Fingerprint Template Encryption (Future Phase)
 
+**Current state**: All fingerprint templates are stored in plaintext on disk, both inside the `.dat` student record files and the separate `.fpt` files. Anyone with file system access can read the raw biometric data.
 
+**Why hashing does not work here**: Hashing (FNV-1a, SHA-256, etc.) is a one-way operation. Once hashed, the original template data is destroyed. The matching engine needs the original 512-byte template to perform byte-by-byte similarity comparison and compute a confidence score. If both the stored and scanned templates were hashed, even a single byte difference would produce completely different hashes, making fuzzy/partial matching impossible. Real fingerprint scans are never perfectly identical to the enrolled scan.
+
+**What should be done instead**: The templates should be encrypted at rest using AES-256 (symmetric encryption). The flow would be:
+
+1. Enrollment: Encrypt the 512-byte template with AES-256 before writing to disk (.dat and .fpt files).
+2. Gate scan: Read the encrypted template from disk, decrypt it into memory, then run `compare_templates()`.
+3. After matching: Wipe the decrypted template from memory immediately.
+4. Key management: The encryption key should be stored securely (e.g. macOS Keychain, environment variable, or a hardware security module).
+
+**The FNV-1a hash in master_index.dat is not a security measure** -- it is a non-cryptographic 4-byte hash used purely as a fast lookup index to avoid loading every student file from disk during matching. It functions like a table of contents, not a lock.
+
+**Files that would need modification**:
+- `serializer.cpp` -- encrypt before writing, decrypt after reading
+- `fingerprint.cpp` -- decrypt candidates in memory before comparison
+- `engine.h` -- add key initialization and management API
+- A new `crypto.cpp` / `crypto.h` module for AES-256 operations
+
+This is tracked as a future phase item and should be implemented before any production deployment.
+
+---
