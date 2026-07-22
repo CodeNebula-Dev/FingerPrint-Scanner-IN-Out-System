@@ -1,5 +1,7 @@
 # Campus Biometric Gate Entry Management System - Presentation & Strategy Package
 
+> **Last Updated**: July 2026
+
 ## Executive Summary
 
 This directory contains the strategic, analytical, and presentation documentation prepared for project supervisors, academic review committees, and intellectual property evaluation.
@@ -11,21 +13,38 @@ The system addresses critical gate management bottlenecks in academic institutio
 ## Package Documents
 
 ### 1. Strategy & IP Analysis
-- **File**: [1_Patent_vs_Publishing_Strategy.md](file:///Users/devanshkhosla/Projects/Test%20folder/Presentation/1_Patent_vs_Publishing_Strategy.md)
-- **Description**: Detailed evaluation of Patenting versus Academic Publishing. Contains subject-matter patentability analysis under international patent laws (USPTO Alice framework, EPO EPC Article 52, IPO Section 3k), target academic journals and conferences (IEEE, Springer, ACM), risk matrix, and a recommended step-by-step roadmap.
+- **File**: [1_Patent_vs_Publishing_Strategy.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/1_Patent_vs_Publishing_Strategy.md)
+- **Description**: Detailed evaluation of Patenting versus Academic Publishing. Contains:
+  - Subject-matter patentability analysis under international patent laws (USPTO Alice, EPO Article 52, IPO Section 3k)
+  - **Prior art landscape assessment** with specific patent search findings
+  - **IPC/CPC classification codes** (G07C 9/00, G07C 9/37, G06V 40/12, G06F 21/32) and Google Patents search strings
+  - Tiered target publication venues (IEEE, Springer, ACM, Elsevier) organized by impact factor
+  - Recommended step-by-step roadmap with 5 concrete action items
 
 ### 2. Literature Review & Comparative Analysis
-- **File**: [2_Related_Work_and_Comparative_Analysis.md](file:///Users/devanshkhosla/Projects/Test%20folder/Presentation/2_Related_Work_and_Comparative_Analysis.md)
-- **Description**: Comprehensive review guide categorizing existing gate entry and attendance architectures (RFID systems, pure cloud biometric gateways, manual-toggle biometric terminals, geofencing apps). Includes a feature-by-feature comparative matrix and explicit research gap identification.
+- **File**: [2_Related_Work_and_Comparative_Analysis.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/2_Related_Work_and_Comparative_Analysis.md)
+- **Description**: Comprehensive review guide with:
+  - **5 categories** of existing systems (Manual, RFID, Standard Biometric, Mobile/QR, and **Anti-Passback** — newly added)
+  - Concrete commercial system analysis (ZKTeco models, Hikvision terminals, Suprema BioStation, HID Mercury, Lenel OnGuard)
+  - **12-dimension comparative matrix** including new rows: Direction Hardware Cost, Anti-Spoofing/Liveness, Scalability
+  - **4 identified research gaps** with IEEE Xplore search verification
+  - **M/M/1 queueing theory framework** with quantified bottleneck analysis
+  - **ISO/IEC standards compliance table** (19795, 24745, 30107, 2382-37, NIST SP 800-76)
+  - Recommended IEEE Xplore search strings for literature review
 
 ### 3. Unique Advantages & Supervisor Pitch
-- **File**: [3_Unique_Advantages_and_Supervisor_Pitch.md](file:///Users/devanshkhosla/Projects/Test%20folder/Presentation/3_Unique_Advantages_and_Supervisor_Pitch.md)
-- **Description**: Technical presentation document designed for supervisor endorsement. Highlights the core technical innovations (Residency-Aware Parity State Machine, Decoupled Dual-Tier Architecture, HOME Database Reconciliation Queue, Automated Curfew Anomaly Audit), theoretical formalization, and project validation metrics.
+- **File**: [3_Unique_Advantages_and_Supervisor_Pitch.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/3_Unique_Advantages_and_Supervisor_Pitch.md)
+- **Description**: Technical presentation document with:
+  - **6 core advantages** (up from 4): added Queueing Theory Analysis and Standards Compliance Pathway
+  - Explicit differentiation from commercial systems (ZKTeco, Hikvision, Suprema) and enterprise anti-passback (HID, Lenel)
+  - Expanded supervisor pitch script with quantified performance claims
+  - **NEW: Anticipated Supervisor Q&A table** with 6 prepared responses to likely tough questions
 
 ---
 
 ## Core System Reference Files
-- Main Architectural Overview: [README.md](file:///Users/devanshkhosla/Projects/Test%20folder/README.md)
-- Detailed Logic & State Transition Model: [Deep_logic.md](file:///Users/devanshkhosla/Projects/Test%20folder/Deep_logic.md)
-- Data Engine Header Specification: [engine.h](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/include/engine.h)
-- High-Performance C++ Core Implementation: [main2.0.cpp](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/src/main2.0.cpp)
+- Main Architectural Overview: [README.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/README.md)
+- Detailed Logic & State Transition Model: [Deep_logic.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Deep_logic.md)
+- Resources & Credits: [resources.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/resources.md)
+- Data Engine Header Specification: [engine.h](file:///Users/devanshkhosla/Projects/CS-Club%20project/cpp_engine/include/engine.h)
+- High-Performance C++ Core Implementation: [main2.0.cpp](file:///Users/devanshkhosla/Projects/CS-Club%20project/cpp_engine/src/main2.0.cpp)
