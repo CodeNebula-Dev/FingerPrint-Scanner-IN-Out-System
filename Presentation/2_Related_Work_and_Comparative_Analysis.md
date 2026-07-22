@@ -114,15 +114,20 @@ To quantify the performance advantage of the zero-friction approach, apply the *
 
 ### Comparative Service Rates
 
-| System Type | Avg. Service Time per Student | Service Rate (μ) | ρ at λ=33 | Avg. Queue Length |
+> **Note**: Service times for the proposed system are derived from code-level analysis of the C++ engine pipeline. See [4_Performance_Analysis_and_Latency_Audit.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/4_Performance_Analysis_and_Latency_Audit.md) for the full breakdown with source code references.
+
+| System Type | Avg. Service Time | Service Rate (μ) | ρ at λ=33 | Avg. Queue Length |
 |---|---|---|---|---|
 | Manual Register (Cat. A) | 20 sec | 3/min | **11.0** (UNSTABLE) | ∞ (system fails) |
 | Standard Biometric + Toggle (Cat. C) | 6 sec | 10/min | **3.3** (UNSTABLE) | ∞ (system fails) |
 | RFID Card Tap (Cat. B) | 1.5 sec | 40/min | 0.83 | ~4.8 students |
-| **Proposed System (Zero-friction)** | **< 0.5 sec** | **120/min** | **0.28** | **~0.4 students** |
+| **Proposed System — Return Scan** | **~0.5 sec** (hw capture + software, no human input) | **120/min** | **0.28** | **~0.4 students** |
+| **Proposed System — Exit Scan** | **~3 sec** (hw + software + purpose selection) | **20/min** | **1.65** | ⚠️ Unstable alone |
 
 ### Key Insight
-At peak arrival rates, both manual registers and standard biometric terminals with manual direction toggles produce **unstable queues** (ρ > 1), meaning the queue grows indefinitely. The proposed system's sub-second throughput keeps utilization well below the stability threshold, effectively **eliminating gate bottlenecks**.
+**Return scans** (student entering campus) require zero human interaction — direction is automatically inferred via the residency-aware parity state machine. At ~500 ms total, this matches RFID tap speeds while providing biometric security. **Exit scans** requiring purpose selection take ~3 seconds due to human input, which is still **2–5× faster** than manual registers and comparable to standard biometric terminals. In peak morning hours (predominantly entry scans), the system operates well below the queueing stability threshold.
+
+> **Software processing latency (code-verified)**: < 200 ms for up to 1,000 enrolled students, covering template matching, status computation, and log persistence. See [Section 3 of the Performance Audit](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/4_Performance_Analysis_and_Latency_Audit.md) for methodology.
 
 ---
 

@@ -40,6 +40,16 @@ The system addresses critical gate management bottlenecks in academic institutio
   - Expanded supervisor pitch script with quantified performance claims
   - **NEW: Anticipated Supervisor Q&A table** with 6 prepared responses to likely tough questions
 
+### 4. Performance Analysis & Latency Audit
+- **File**: [4_Performance_Analysis_and_Latency_Audit.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/4_Performance_Analysis_and_Latency_Audit.md)
+- **Description**: Code-level performance audit of the scan pipeline with:
+  - Step-by-step latency breakdown tracing every function in the C++ engine (`fingerprint_match()`, `home_exists()`, `log_get_entry()`, parity calc, log write)
+  - **Scaling projections** from 10 to 10,000 students with per-student I/O cost analysis
+  - Honest distinction between **return scans (~500 ms)** and **exit scans (~3 sec)** with purpose selection
+  - Quantified C++ vs Python performance comparison (5–100× speedup by operation)
+  - Defensible academic phrasing recommendations for IEEE/Springer papers
+  - Future optimization paths (Level 1 hash filtering, in-memory template cache, SIMD)
+
 ---
 
 ## Core System Reference Files
