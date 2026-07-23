@@ -1099,4 +1099,4 @@ Currently, all fingerprint templates are stored in plaintext on disk (both `.dat
 See [GateScanModifications.md Section 7](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/GateScanModifications.md) for full details.
 
 ---
-hello there ehe
+he
