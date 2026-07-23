@@ -1,11 +1,11 @@
 # Implementation Plan — Phase 4 & 5: Python Bridge + Core Logic
 
-
 ---
 
 ## What Phase 4 & 5 Will Produce
 
 After these two phases, you will have:
+
 1. A **pybind11 binding module** (`gate_engine`) that Python can `import` natively.
 2. A **Pythonic wrapper layer** (`engine_wrapper.py`) with type hints, error handling, and dataclass conversions.
 3. Five **core logic modules** — parity, purpose, home workflow, curfew, and session management.
@@ -19,6 +19,7 @@ After these two phases, you will have:
 
 > [!NOTE]
 > The main implementation plan discusses both `ctypes` and `pybind11`. We are going with **pybind11** because:
+>
 > - It natively understands C++ types — `std::vector`, `std::string`, structs, booleans — and maps them directly to Python objects. No manual `ctypes.Structure` definitions needed.
 > - It compiles a proper Python extension module (`.so` on macOS/Linux, `.pyd` on Windows) that you `import` like any Python package.
 > - Debugging is cleaner — errors in bindings show up at compile time, not at runtime as cryptic segfaults.
@@ -43,6 +44,7 @@ python3 -c "import pybind11; print(pybind11.get_cmake_dir())"
 This is the single binding file that wraps every C++ function and struct for Python.
 
 **What it does:**
+
 - Registers all four structs (`StudentRecord`, `LogEntry`, `HomeRecord`, `MatchResult`) as Python-accessible classes with readable property attributes.
 - Wraps every API function from [engine.h](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/include/engine.h) — all 25 functions.
 - Handles the `uint8_t fingerprint_template[512]` field by exposing it as a Python `bytes` object (for reads) and accepting `bytes` input (for writes/matching).
@@ -103,7 +105,7 @@ PYBIND11_MODULE(gate_engine, m) {
 **Full function list to bind** (all from [engine.h](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/include/engine.h)):
 
 | # | C++ Function | Python Signature |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `engine_init(const char*)` | `engine_init(path: str) -> bool` |
 | 2 | `engine_shutdown()` | `engine_shutdown() -> None` |
 | 3 | `student_add(const StudentRecord&)` | `student_add(record: StudentRecord) -> bool` |
@@ -136,7 +138,7 @@ PYBIND11_MODULE(gate_engine, m) {
 
 ---
 
-#### [MODIFY] `cpp_engine/CMakeLists.txt` this i will do in the code base no need to worry about this 
+#### [MODIFY] `cpp_engine/CMakeLists.txt` this i will do in the code base no need to worry about this
 
 Add pybind11 integration to the existing build system:
 
@@ -166,12 +168,14 @@ Empty init file.
 A clean Pythonic interface over the raw C++ bindings. This is what the rest of the Python app imports — nobody imports `gate_engine` directly except this file.
 
 **What it does:**
+
 - Imports the compiled `gate_engine` module.
 - Provides functions with Python type hints, docstrings, and proper error handling.
 - Converts raw C++ struct objects into Python `dataclasses` for cleaner downstream use.
 - Wraps exceptions so a C++ crash doesn't propagate an ugly error to the UI.
 
 **Key design decisions:**
+
 - Returns `Optional[StudentRecord]` instead of raising exceptions for "not found" cases.
 - Automatically formats date strings to `DD_MM_YYYY` (the format the C++ engine expects).
 - Provides a context manager for engine lifecycle (`with EngineSession(path) as engine:`).
@@ -303,6 +307,7 @@ def log_rejection(date: str, failed_scan: bytes) -> bool: ...
 
 > [!TIP]
 > **Why the wrapper instead of calling `gate_engine` directly?**
+>
 > 1. The rest of the Python app only depends on clean Python types (`Student`, `LogRecord`, etc.), not on the C++ struct objects.
 > 2. If you ever swap pybind11 for ctypes, or replace the C++ engine with SQLite, **only this one file changes**. Everything else stays the same.
 > 3. Date formatting, error handling, and logging live here — not scattered across 10 modules.
@@ -311,7 +316,7 @@ def log_rejection(date: str, failed_scan: bytes) -> bool: ...
 
 ### 4.5 Updated Folder Structure After Phase 4
 
-```
+```txt
 project_root/
 |
 |-- cpp_engine/                             <-- EXISTING (Phases 1-3)
@@ -354,14 +359,17 @@ project_root/
 ### 4.6 Phase 4 Verification
 
 1. **Build the module:**
+
    ```bash
    cd cpp_engine/build
    cmake ..
    make
    ```
+
    Confirm output includes `gate_engine.cpython-3XX-darwin.so`.
 
 2. **Python smoke test:**
+
    ```python
    import gate_engine
 
@@ -392,6 +400,7 @@ project_root/
    ```
 
 3. **Wrapper test:**
+
    ```python
    from python_app.bridge import engine_wrapper as ew
 
@@ -551,6 +560,7 @@ def is_home_purpose(purpose: str) -> bool:
 ### 5.4 `python_app/logic/home_workflow.py` — HOME Approval Engine
 
 This module manages the full HOME lifecycle:
+
 1. Student selects HOME → request is queued.
 2. Admin approves or rejects.
 3. If approved → student added to Home DB, log updated.
@@ -1051,16 +1061,17 @@ if __name__ == "__main__":
 
 ---
 
-
 #### Integration Test (Console)
 
 Run the `main.py` test harness:
+
 ```bash
 cd project_root
 python -m python_app.main
 ```
 
 Perform the same test sequence as the [Phase 1-3 verification](file:///Users/devanshkhosla/Projects/Test%20folder/Phase%201-3.md):
+
 1. Enroll Devansh (Hosteller) and Bacchi (Day Scholar) through the Python CLI.
 2. Scan Devansh → status OUT (count 1), purpose: Market.
 3. Scan Devansh → status IN (count 2), no purpose needed.
@@ -1084,13 +1095,14 @@ Currently, all fingerprint templates are stored in plaintext on disk (both `.dat
 **Planned approach: AES-256 encryption at rest.**
 
 | Step | What Happens |
-|------|-------------|
+| ---- | ------------- |
 | Enrollment | Encrypt the 512-byte template with AES-256 before writing to `.dat` / `.fpt` files |
 | Gate scan | Read encrypted template from disk, decrypt in memory, run `compare_templates()` |
 | After match | Zero-wipe the decrypted buffer from memory immediately |
 | Key storage | macOS Keychain, env variable, or hardware security module |
 
 **New files needed:**
+
 - `cpp_engine/src/crypto.cpp` + `cpp_engine/include/crypto.h` -- AES-256 encrypt/decrypt functions
 - Modifications to `serializer.cpp`, `fingerprint.cpp`, and `engine.h`
 
@@ -1099,4 +1111,3 @@ Currently, all fingerprint templates are stored in plaintext on disk (both `.dat
 See [GateScanModifications.md Section 7](file:///Users/devanshkhosla/Projects/Test%20folder/cpp_engine/GateScanModifications.md) for full details.
 
 ---
-he
