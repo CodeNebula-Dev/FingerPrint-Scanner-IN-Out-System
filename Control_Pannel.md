@@ -1,4 +1,4 @@
-# The User Interface
+# The User Interface For FPS
 - Here we will be describing the workings and rudimentary visuals of the interface which will allow
   personnel of the institution to be able to access and view and comprehend the information that is logged
   by the interraction between the hardware and the database.
