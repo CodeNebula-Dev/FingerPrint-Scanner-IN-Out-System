@@ -50,6 +50,16 @@ The system addresses critical gate management bottlenecks in academic institutio
   - Defensible academic phrasing recommendations for IEEE/Springer papers
   - Future optimization paths (Level 1 hash filtering, in-memory template cache, SIMD)
 
+### 5. Comprehensive System Architecture & Codebase Guide
+- **File**: [5_Comprehensive_System_Architecture_and_Codebase_Guide.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/5_Comprehensive_System_Architecture_and_Codebase_Guide.md)
+- **Description**: Master unified specification & progress report containing:
+  - Complete architectural specification & Decoupled Dual-Tier diagram
+  - Formal residency-aware parity state machine math & HOME database reconciliation state flow
+  - Exact binary struct definitions (`StudentRecord`, `LogEntry`, `HomeRecord`, `CachedFingerprint`)
+  - File-by-file C++ engine code analysis (`master_db`, `fingerprint`, `daily_log`, `home_db`, `indexer`, `serializer`, `touch_id`, `main2.0`)
+  - Build instructions, CLI driver guide, and shared library compilation for Python interop
+  - Detailed project milestones completed to date & future technical roadmap
+
 ---
 
 ## Core System Reference Files
