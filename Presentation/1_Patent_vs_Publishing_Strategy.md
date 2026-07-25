@@ -3,7 +3,7 @@
 > **Last Updated**: July 2026  
 > **Purpose**: Strategic decision framework for intellectual property protection versus academic dissemination.
 
-## 1. Overview and Problem Context
+## 1. Overview and Problem Context of the project 
 
 The project introduces an intelligent, dual-tier biometric campus gate entry management system combining a low-latency C++ database/matching engine with a Python application layer enforcing a residency-aware state machine, dynamic home leave reconciliation, and automated curfew anomaly detection.
 
