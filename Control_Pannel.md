@@ -10,7 +10,7 @@
 
 
 
-## Log Panel
+## Log Panel: Home Page
 
 - This is the major part of the inteface with multiple options and customizable viewing, it will allow the admin or the admin adjacent
   to move through the data swiftly and get any information in any way they please.
