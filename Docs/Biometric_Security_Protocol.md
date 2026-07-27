@@ -26,23 +26,23 @@ To evaluate potential upgrades, we compare four models: our current baseline, st
 
 #### Model 0: Current Plaintext Baseline
 * **Mechanism**: Direct byte-level similarity check on raw minutiae templates in RAM (`uint8_t template[512]`).
-* **Security**: ❌ **Zero** protection against RAM scraping or database theft. Permanent exposure if compromised.
-* **Latency**: ⚡ **$< 0.5\,\text{ms}$** per match.
+* **Security**:  **Zero** protection against RAM scraping or database theft. Permanent exposure if compromised.
+* **Latency**:  **$< 0.5\,\text{ms}$** per match.
 
 #### Model 1: Fully Homomorphic Encryption (FHE / PHE - BFV/CKKS)
 * **Mechanism**: Both enrollment template and live scan are encrypted into high-dimensional polynomial ciphertexts using public keys. The engine evaluates Euclidean distance directly on ciphertexts without decryption.
-* **Security**: 🛡️ **Maximum Cryptographic Hardness** (Lattice-based / Post-Quantum). Zero data leakage to RAM or disk.
-* **Latency**: 🐢 **$50\,\text{ms} - 250\,\text{ms}$** per match. Unsuitable for heavy campus gate queues (causes bottlenecks).
+* **Security**:  **Maximum Cryptographic Hardness** (Lattice-based / Post-Quantum). Zero data leakage to RAM or disk.
+* **Latency**:  **$50\,\text{ms} - 250\,\text{ms}$** per match. Unsuitable for heavy campus gate queues (causes bottlenecks).
 
 #### Model 2: Cancelable Biometrics (Non-Invertible Matrix Projection)
 * **Mechanism**: Minutiae points are transformed using a secret user/gate matrix key $K$ via a one-way function $Y = f_K(X)$. Matching happens entirely in transformed space.
-* **Security**: 🔒 **High Biometric Protection**. Non-invertible and revocable (if key $K$ is compromised, issue key $K'$ without changing the student's physical fingerprint).
-* **Latency**: ⚡ **$1.0\,\text{ms} - 2.0\,\text{ms}$** per match.
+* **Security**:  **High Biometric Protection**. Non-invertible and revocable (if key $K$ is compromised, issue key $K'$ without changing the student's physical fingerprint).
+* **Latency**:  **$1.0\,\text{ms} - 2.0\,\text{ms}$** per match.
 
 #### Model 3 (Proposed): Novel Light-HE Bio-Hashing (Permutated Minutiae Bio-Hashing with Keyed Masking - PMBH-KHM)
 * **Mechanism**: Combines a non-invertible chaotic projection matrix with lightweight additive homomorphic masking (SIMD-packed vectorized XOR/addition).
-* **Security**: 🛡️ **Dual-Layer Protection** (ISO/IEC 24745 compliant). Invertibility-proof + RAM ciphertext matching.
-* **Latency**: ⚡ **$1.2\,\text{ms} - 1.8\,\text{ms}$** per match (achieves near-baseline speed!).
+* **Security**:  **Dual-Layer Protection** (ISO/IEC 24745 compliant). Invertibility-proof + RAM ciphertext matching.
+* **Latency**:  **$1.2\,\text{ms} - 1.8\,\text{ms}$** per match (achieves near-baseline speed!).
 
 ---
 
@@ -85,7 +85,7 @@ To solve the speed bottleneck of traditional Homomorphic Encryption while avoidi
  (Live Encrypted Vector)
         │
         ▼
- ⚡ SIMD Vectorized Mask-Cancellation Distance Metric
+  SIMD Vectorized Mask-Cancellation Distance Metric
     Compute: Score_enc = SIMD_Hamming_Distance(Enc_live, Enc_stored)
         │
         ▼
