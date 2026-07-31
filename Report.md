@@ -28,16 +28,15 @@ Traditional gate terminals (e.g., ZKTeco, Hikvision, Suprema) require users to m
 
 Our solution derives movement direction using software logic that combines scan count parity with the enrolled student's residency metadata. By evaluating whether the student is a Hosteller (default initial state: INSIDE campus) or a Day Scholar (default initial state: OUTSIDE campus), the engine calculates state transitions deterministically:
 
-## Hosteller Parity Rule:
+## Hosteller Parity Rule
 
 Status(Count) = OUT if Count &pmod; 2 &neq; 0 (Odd Count) else IN (Even Count)
 
-## Day Scholar Parity Rule:
+## Day Scholar Parity Rule
 
 Status(Count) = IN if Count &pmod; 2 &neq; 0 (Odd Count) else OUT (Even Count)
 
-
-## Formal State Transition Mechanics:
+## Formal State Transition Mechanics
 
 - Hosteller Scan 1 (Odd): Initial state INSIDE → Transition to OUT (Exiting campus).
 
@@ -72,13 +71,12 @@ At 18:30 (Default Curfew), the automated audit engine parses active daily logs, 
 ## 2.5 System Implementation Source Code Mapping
 
 |   | Component / Source Implementation File Technical Functionality & Memory Layout Architectural Layer |
-| --- | --- |
+
 |   | C++ Data Engine cpp_engine/include/ Defines binary memory layout for StudentRecord (~680 B), Header engine.h LogEntry (~730 B), and HomeRecord (~160 B) structs. |
 |   | C++ Core Logic Engine cpp_engine/src/ Implements main execution pipeline, parity computation, and |
 |   | main2.0.cpp purpose selection branches. |
 |   | Master Database cpp_engine/src/ Handles persistent student record binary reads/writes, updates, and Handler master_db.cpp batch student enrollment routines. |
 |   | Daily Log Engine cpp_engine/src/ Manages daily crossing log file creation, record deserialization, daily_log.cpp append operations, and lookup searches. |
-
 
 | Component / | Source Implementation File | Technical Functionality & Memory Layout |   |   |
 | --- | --- | --- | --- | --- |
