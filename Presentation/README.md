@@ -13,6 +13,7 @@ The system addresses critical gate management bottlenecks in academic institutio
 ## Package Documents
 
 ### 1. Strategy & IP Analysis
+
 - **File**: [1_Patent_vs_Publishing_Strategy.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/1_Patent_vs_Publishing_Strategy.md)
 - **Description**: Detailed evaluation of Patenting versus Academic Publishing. Contains:
   - Subject-matter patentability analysis under international patent laws (USPTO Alice, EPO Article 52, IPO Section 3k)
@@ -22,6 +23,7 @@ The system addresses critical gate management bottlenecks in academic institutio
   - Recommended step-by-step roadmap with 5 concrete action items
 
 ### 2. Literature Review & Comparative Analysis
+
 - **File**: [2_Related_Work_and_Comparative_Analysis.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/2_Related_Work_and_Comparative_Analysis.md)
 - **Description**: Comprehensive review guide with:
   - **5 categories** of existing systems (Manual, RFID, Standard Biometric, Mobile/QR, and **Anti-Passback** — newly added)
@@ -33,6 +35,7 @@ The system addresses critical gate management bottlenecks in academic institutio
   - Recommended IEEE Xplore search strings for literature review
 
 ### 3. Unique Advantages & Supervisor Pitch
+
 - **File**: [3_Unique_Advantages_and_Supervisor_Pitch.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/3_Unique_Advantages_and_Supervisor_Pitch.md)
 - **Description**: Technical presentation document with:
   - **6 core advantages** (up from 4): added Queueing Theory Analysis and Standards Compliance Pathway
@@ -41,6 +44,7 @@ The system addresses critical gate management bottlenecks in academic institutio
   - **NEW: Anticipated Supervisor Q&A table** with 6 prepared responses to likely tough questions
 
 ### 4. Performance Analysis & Latency Audit
+
 - **File**: [4_Performance_Analysis_and_Latency_Audit.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Presentation/4_Performance_Analysis_and_Latency_Audit.md)
 - **Description**: Code-level performance audit of the scan pipeline with:
   - Step-by-step latency breakdown tracing every function in the C++ engine (`fingerprint_match()`, `home_exists()`, `log_get_entry()`, parity calc, log write)
@@ -53,6 +57,7 @@ The system addresses critical gate management bottlenecks in academic institutio
 ---
 
 ## Core System Reference Files
+
 - Main Architectural Overview: [README.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/README.md)
 - Detailed Logic & State Transition Model: [Deep_logic.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/Deep_logic.md)
 - Resources & Credits: [resources.md](file:///Users/devanshkhosla/Projects/CS-Club%20project/resources.md)
