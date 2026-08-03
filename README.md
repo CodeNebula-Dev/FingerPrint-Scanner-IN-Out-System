@@ -18,7 +18,6 @@
 12. Known Flaws and Limitations
 13. Future Additions
 
-
 ---
 
 ## 1. Problem Statement
@@ -60,6 +59,7 @@ The system is composed of four major layers:
 **Application Layer (Python)** -- Everything above the database engine is written in Python. This includes the state transition status logic, purpose selection flow, HOME approval workflow, curfew monitoring, session management, Excel export, and all control panel UI. Python is chosen for this layer because it offers rapid development, cleaner code for business logic, rich library support (for Excel generation, UI frameworks, and future web integration), and easier maintenance. Python communicates with the C++ database engine through bindings (such as ctypes, pybind11, or a subprocess-based interface), sending queries and receiving structured results.
 
 **Data Layer** -- Three distinct data stores, all managed by the C++ engine:
+
 - A Master Database (Student_data) holding all enrolled student records.
 - A Daily Log Database (Everyday_data) that creates a new file each day to record gate crossings.
 - A Home Database (student_gone_home) that temporarily holds records of students approved to go home.
@@ -127,11 +127,11 @@ This ensures that status transitions are perfectly sequential and self-correctin
 
 ### State Transition Reference Table
 
-| Scan Scenario | Student Type | Derived Status |
-|---------------|--------------|----------------|
-| First Scan    | Hosteller    | OUTSIDE (`OUT`)|
-| First Scan    | Day Scholar  | INSIDE (`IN`)  |
-| Toggle Scan   | Hosteller/Day Scholar | Opposite of previous daily status |
+| Scan Scenario| Student Type          | Derived Status                         |
+|--------------|-----------------------|----------------------------------------|
+| First Scan   | Hosteller             | OUTSIDE (`OUT`)                        |
+| First Scan   | Day Scholar           | INSIDE (`IN`)                          |
+| Toggle Scan  | Hosteller/Day Scholar | Opposite of previous daily status      |
 
 The residency type (hosteler or day scholar) is stored as a boolean field in the master database and is fetched alongside the student's name on every scan. This is used to set the initial default status for the first scan of the day.
 
@@ -144,6 +144,7 @@ After the student's identity is confirmed and before the timestamp is committed,
 ### Standard Purposes (Market, Exam, Medical, Class, Others)
 
 For any non-HOME purpose, the flow is straightforward:
+
 1. The student selects their reason.
 2. The timestamp is written immediately.
 3. The scan count increments by one.
@@ -192,6 +193,7 @@ The resulting list is displayed on the admin panel's Out tab, complete with cont
 ### Late Returns
 
 If a student scans after curfew time (after 18:30):
+
 1. Their scan is processed normally.
 2. Their scan count increments, flipping their status back.
 3. They are automatically removed from the "still outside" list.
@@ -229,17 +231,17 @@ A new file is created each day, named by date (e.g., `01_01_2026.csv`). Files ar
 
 Each student who scans during the day gets a row in this file. The row accumulates every scan as a sequence of timestamps.
 
-| Field                          | Type      | Description                                        |
-|--------------------------------|-----------|----------------------------------------------------|
-| name                           | string    | Student name (fetched from master)                 |
-| roll_number                    | string    | Links to master database                           |
-| year                           | integer   | Current academic year                              |
-| reason                         | string    | Purpose of exit (Market, Exam, Medical, Home, etc.)|
-| entry_time                     | datetime  | Timestamp(s) of entry scans                        |
-| exit_time                      | datetime  | Timestamp(s) of exit scans                         |
-| student_pass_through_gate_count| integer   | Incremented on each scan, tracks total daily gate crossings  |
-| status                         | enum      | IN or OUT (derived from state transition model)    |
-| late_return                    | boolean   | true if the student scanned after 18:30            |
+| Field                           | Type      | Description                                                 |
+|---------------------------------|-----------|-------------------------------------------------------------|
+| name                            | string    | Student name (fetched from master)                          |
+| roll_number                     | string    | Links to master database                                    |
+| year                            | integer   | Current academic year                                       |
+| reason                          | string    | Purpose of exit (Market, Exam, Medical, Home, etc.)         |
+| entry_time                      | datetime  | Timestamp(s) of entry scans                                 |
+| exit_time                       | datetime  | Timestamp(s) of exit scans                                  |
+| student_pass_through_gate_count | integer   | Incremented on each scan, tracks total daily gate crossings |
+| status                          | enum      | IN or OUT (derived from state transition model)             |
+| late_return                     | boolean   | true if the student scanned after 18:30                     |
 
 ### 7.3 Home Database (student_gone_home)
 
@@ -260,7 +262,7 @@ A temporary database that exists only while students are away on approved home l
 
 The student record in the C++ database engine is defined as a struct:
 
-```
+```.c
 struct student {
     string roll_number;
     string name;
@@ -285,13 +287,13 @@ The `uint8_t` type (from the `<cstdint>` header) is explicitly 8 bits wide, maki
 
 ### Python Libraries (Application Layer)
 
-| Library            | Purpose                                                    |
-|--------------------|------------------------------------------------------------|
-| openpyxl / xlsxwriter | Excel file generation for log archival and export       |
-| tkinter / PyQt     | Desktop GUI for the admin control panel                    |
-| pybind11 / ctypes  | Interface to call the C++ database engine from Python      |
-| datetime           | Date and time handling for session management              |
-| os / pathlib       | File path operations for navigating the data folder hierarchy |
+| Library               | Purpose                                                       |
+|-----------------------|---------------------------------------------------------------|
+| openpyxl / xlsxwriter | Excel file generation for log archival and export             |
+| tkinter / PyQt        | Desktop GUI for the admin control panel                       |
+| pybind11 / ctypes     | Interface to call the C++ database engine from Python         |
+| datetime              | Date and time handling for session management                 |
+| os / pathlib          | File path operations for navigating the data folder hierarchy |
 
 ---
 
@@ -342,6 +344,7 @@ The control panel is the administrative interface through which all non-scanning
 The primary view for reviewing gate activity. Displays a table with columns: Name, Roll No., Year, Reason, Program, Role, Entry Time, Exit Time.
 
 Features:
+
 - **Search** -- Parse through all cells to find a specific student or value.
 - **Select Period of Log** -- A calendar popup to select a date range; the system loads and displays all log files from that period.
 - **Today** -- Quick shortcut to view only today's log.
@@ -367,14 +370,17 @@ Displays students currently away on approved home leave (records from the studen
 A password-protected administrative panel for direct database management. After authentication, two options are available:
 
 **Edit Database:**
+
 - **Add** -- Enrol a new student by entering: Name, Roll Number, Program, Batch, Year, Contact Info, Role, and Fingerprint. The system creates the appropriate file in the correct batch folder.
 - **Remove** -- Delete a student by name and roll number. If an entire batch needs to be removed, the admin provides the program and batch, and the system deletes all student files in that batch folder followed by the folder itself.
 
 **View Database:**
+
 - **Log Files** -- Browse archived daily logs. Options include "Export" (copy to Excel) and "Export and Delete" (copy to Excel and remove from the database).
 - **Students** -- Browse the master student database. Supports search and filtering by Program, Batch, and Year.
 
 Additional capabilities within Edit Database:
+
 - **Edit Student Records** -- Select a field to modify (name, roll number, etc.). The current value is shown first for confirmation before replacement.
 - **Edit Gate Records** -- Enter a date (DD/MM/YYYY), load that day's log, select a student's record, and modify their entries.
 - **Batch Promotion** -- Increment the academic year for an entire batch or the entire student database with a single action, using a loop to update each student's year field.
@@ -528,4 +534,3 @@ Implement automatic backup of all databases to a cloud storage provider so that 
 ### Tailgating Detection
 
 Integrate with turnstile hardware or infrared sensors to detect when multiple people pass through on a single scan, flagging potential sequence desynchronisation.
-
