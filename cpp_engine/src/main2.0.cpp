@@ -21,7 +21,8 @@
 #define CYAN "\033[36m"
 
 // Global helpers for time
-std::string get_current_date_string() {
+std::string get_current_date_string()
+{
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
   char buf[12];
@@ -29,7 +30,8 @@ std::string get_current_date_string() {
   return std::string(buf);
 }
 
-std::string get_current_time_string() {
+std::string get_current_time_string()
+{
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
   char buf[10];
@@ -37,7 +39,8 @@ std::string get_current_time_string() {
   return std::string(buf);
 }
 
-std::string get_current_timestamp_string() {
+std::string get_current_timestamp_string()
+{
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
   char buf[25];
@@ -45,7 +48,8 @@ std::string get_current_timestamp_string() {
   return std::string(buf);
 }
 
-bool is_after_curfew() {
+bool is_after_curfew()
+{
   auto now = std::chrono::system_clock::now();
   std::time_t t = std::chrono::system_clock::to_time_t(now);
   std::tm *local = std::localtime(&t);
@@ -59,17 +63,20 @@ bool is_after_curfew() {
 }
 
 // Generate mock template data based on roll number
-void generate_mock_template(const std::string &roll, uint8_t *template_out) {
+void generate_mock_template(const std::string &roll, uint8_t *template_out)
+{
   std::memset(template_out, 0, 512);
   // Simple reproducible mock template: fill with ascii values of the roll
   // number repeating
-  for (size_t i = 0; i < 512; ++i) {
+  for (size_t i = 0; i < 512; ++i)
+  {
     template_out[i] = static_cast<uint8_t>(roll[i % roll.length()]);
   }
 }
 
 // Visual layouts
-void print_header(const std::string &title) {
+void print_header(const std::string &title)
+{
   std::cout << BOLD << CYAN
             << "\n============================================================="
                "=========\n";
@@ -79,20 +86,24 @@ void print_header(const std::string &title) {
             << RESET << "\n";
 }
 
-void print_success(const std::string &msg) {
+void print_success(const std::string &msg)
+{
   std::cout << BOLD << GREEN << "  [SUCCESS] " << msg << RESET << "\n";
 }
 
-void print_warning(const std::string &msg) {
+void print_warning(const std::string &msg)
+{
   std::cout << BOLD << YELLOW << "  [WARNING] " << msg << RESET << "\n";
 }
 
-void print_error(const std::string &msg) {
+void print_error(const std::string &msg)
+{
   std::cout << BOLD << RED << "  [ERROR] " << msg << RESET << "\n";
 }
 
 // Interactive CLI actions
-void do_enroll() {
+void do_enroll()
+{
   print_header("STUDENT BIOMETRIC ENROLLMENT");
   StudentRecord student;
   std::memset(&student, 0, sizeof(StudentRecord));
@@ -138,7 +149,8 @@ void do_enroll() {
   std::string prompt_str = "Enroll fingerprint for student " + name;
   bool touch_ok = macos_touch_id_authenticate(prompt_str.c_str());
 
-  if (!touch_ok) {
+  if (!touch_ok)
+  {
     print_error("MacBook Touch ID enrollment failed or was cancelled. "
                 "Enrollment aborted.");
     return;
@@ -149,18 +161,23 @@ void do_enroll() {
   // Generate mock template
   generate_mock_template(roll, student.fingerprint_template);
 
-  if (student_add(student)) {
+  if (student_add(student))
+  {
     print_success("Student enrolled successfully on disk!");
-  } else {
+  }
+  else
+  {
     print_error("Failed to enroll student.");
   }
 }
 
-void do_scan() {
+void do_scan()
+{
   print_header("BIOMETRIC GATE SCANNER ACTIVE");
 
   std::vector<StudentRecord> students = student_list_all();
-  if (students.empty()) {
+  if (students.empty())
+  {
     print_warning("No students currently enrolled in master database. Please "
                   "enroll students first!");
     return;
@@ -174,7 +191,8 @@ void do_scan() {
   std::string prompt_str = "Authorize gate scan";
   bool touch_ok = macos_touch_id_authenticate(prompt_str.c_str());
 
-  if (!touch_ok) {
+  if (!touch_ok)
+  {
     print_error("MacBook Touch ID authentication failed or was cancelled.");
     // Write to rejection log
     uint8_t failed_scan[512] = {0};
@@ -192,7 +210,8 @@ void do_scan() {
   // replaced by actual sensor data capture.
   // ==================================================================
   std::cout << BOLD << BLUE
-            << "\n  [DEV MODE] Simulating fingerprint scan...\n" << RESET;
+            << "\n  [DEV MODE] Simulating fingerprint scan...\n"
+            << RESET;
   std::cout << "  Enter Roll Number to simulate scan (e.g. 26CSE001): ";
   std::string sim_roll;
   std::cin >> sim_roll;
@@ -205,7 +224,8 @@ void do_scan() {
   // Run database matching — searches ALL enrolled students
   MatchResult match = fingerprint_match(live_scan, 512);
 
-  if (!match.matched) {
+  if (!match.matched)
+  {
     print_error("Fingerprint match rejected by database engine!");
     std::cout << "  Student is not enrolled or fingerprint not recognized.\n";
     rejection_log_write(get_current_date_string().c_str(), live_scan, 512);
@@ -213,7 +233,8 @@ void do_scan() {
   }
 
   // Warn if multiple students share the same fingerprint
-  if (match.match_count > 1) {
+  if (match.match_count > 1)
+  {
     std::cout << BOLD << YELLOW
               << "  [WARNING] Multiple entries detected! "
               << match.match_count
@@ -221,19 +242,23 @@ void do_scan() {
               << "  Proceeding with best match: " << match.name
               << " (" << match.roll_number << ")\n"
               << RESET;
-  } else {
+  }
+  else
+  {
     std::cout << BOLD << GREEN
               << "  [IDENTIFIED] " << match.name << " ("
               << match.roll_number << ") ["
               << (match.is_hosteller ? "Hosteller" : "Day Scholar")
-              << "]\n" << RESET;
+              << "]\n"
+              << RESET;
   }
 
   std::string today = get_current_date_string();
   std::string now_time = get_current_timestamp_string();
 
   // 1. Check Home leave database first
-  if (home_exists(match.roll_number)) {
+  if (home_exists(match.roll_number))
+  {
     std::cout
         << BOLD << GREEN
         << "  [RETURNING FROM HOME] Student detected on approved home leave.\n"
@@ -263,7 +288,8 @@ void do_scan() {
   bool has_scanned_today =
       log_get_entry(today.c_str(), match.roll_number, log_entry);
 
-  if (!has_scanned_today) {
+  if (!has_scanned_today)
+  {
     std::memset(&log_entry, 0, sizeof(LogEntry));
     std::strncpy(log_entry.roll_number, match.roll_number,
                  sizeof(log_entry.roll_number) - 1);
@@ -273,8 +299,11 @@ void do_scan() {
     log_entry.timestamp_count = 1;
     std::strncpy(log_entry.timestamps[0], now_time.c_str(),
                  sizeof(log_entry.timestamps[0]) - 1);
-  } else {
-    if (log_entry.timestamp_count >= MAX_TIMESTAMPS) {
+  }
+  else
+  {
+    if (log_entry.timestamp_count >= MAX_TIMESTAMPS)
+    {
       print_error("Daily scan count limit reached for this student.");
       return;
     }
@@ -287,10 +316,13 @@ void do_scan() {
 
   // Compute parity status
   bool is_in = false;
-  if (match.is_hosteller) {
+  if (match.is_hosteller)
+  {
     // Hosteler default INSIDE. Odd counts mean they are OUTSIDE.
     is_in = (log_entry.gate_count % 2 == 0);
-  } else {
+  }
+  else
+  {
     // Day Scholar default OUTSIDE. Odd counts mean they are INSIDE.
     is_in = (log_entry.gate_count % 2 != 0);
   }
@@ -300,7 +332,8 @@ void do_scan() {
                sizeof(log_entry.status) - 1);
 
   // Curfew check
-  if (is_after_curfew() && is_in && match.is_hosteller) {
+  if (is_after_curfew() && is_in && match.is_hosteller)
+  {
     log_entry.late_return = true;
     std::cout << BOLD << RED
               << "  [CURFEW WARNING] Late return detected! (Curfew is 18:30)\n"
@@ -313,9 +346,11 @@ void do_scan() {
 
   // For Hostellers going OUT or Day Scholars going IN
   if ((match.is_hosteller && going_out) ||
-      (!match.is_hosteller && !going_out)) {
+      (!match.is_hosteller && !going_out))
+  {
     std::cout << "\n  Select purpose of gate crossing:\n";
-    if (match.is_hosteller) {
+    if (match.is_hosteller)
+    {
       std::cout << "  [1] Market\n  [2] Medical\n  [3] Exam\n  [4] Home\n  [5] "
                    "Others\n";
       std::cout << "  Enter choice: ";
@@ -329,39 +364,47 @@ void do_scan() {
         purpose = "Exam";
       else if (choice == 4)
         purpose = "Home";
-      else {
+      else
+      {
         std::cout << "  Enter custom reason: ";
         std::cin.ignore();
         std::getline(std::cin, purpose);
       }
-    } else {
+    }
+    else
+    {
       std::cout << "  [1] Class\n  [2] Others\n";
       std::cout << "  Enter choice: ";
       int choice;
       std::cin >> choice;
       if (choice == 1)
         purpose = "Class";
-      else {
+      else
+      {
         std::cout << "  Enter custom reason: ";
         std::cin.ignore();
         std::getline(std::cin, purpose);
       }
     }
-  } else {
+  }
+  else
+  {
     purpose = is_in ? "Entry" : "Exit";
   }
 
   std::strncpy(log_entry.reason, purpose.c_str(), sizeof(log_entry.reason) - 1);
 
   // Special HOME workflow
-  if (purpose == "Home") {
+  if (purpose == "Home")
+  {
     std::cout << BOLD << YELLOW
               << "  [APPROVAL QUEUED] Home leave request submitted to admin.\n"
               << RESET;
     std::cout << "  Approve Home leave request? (y/n): ";
     char approval;
     std::cin >> approval;
-    if (approval == 'y' || approval == 'Y') {
+    if (approval == 'y' || approval == 'Y')
+    {
       print_success("Home leave approved!");
 
       // Add student to gone home active database
@@ -383,7 +426,9 @@ void do_scan() {
                    sizeof(hr.time_of_leaving) - 1);
 
       home_add(hr);
-    } else {
+    }
+    else
+    {
       print_warning("Home leave denied by administrator.");
       std::cout << "  The leave form is not submitted. Transaction reverted.\n";
       return;
@@ -392,28 +437,36 @@ void do_scan() {
 
   // Save to daily logs
   bool write_ok = false;
-  if (!has_scanned_today) {
+  if (!has_scanned_today)
+  {
     write_ok = log_add_entry(today.c_str(), log_entry);
-  } else {
+  }
+  else
+  {
     write_ok = log_update_entry(today.c_str(), match.roll_number, log_entry);
   }
 
-  if (write_ok) {
+  if (write_ok)
+  {
     std::cout << BOLD << GREEN << "  [LOGGED] " << match.name << " is marked "
               << status_str << " (Gate count: " << log_entry.gate_count
               << ", Purpose: " << purpose << ")\n"
               << RESET;
-  } else {
+  }
+  else
+  {
     print_error("Failed to write daily log.");
   }
 }
 
-void do_view_logs() {
+void do_view_logs()
+{
   print_header("DAILY LOG GATE RECORDS");
   std::string today = get_current_date_string();
   std::vector<LogEntry> entries = log_get_all_entries(today.c_str());
 
-  if (entries.empty()) {
+  if (entries.empty())
+  {
     print_warning("No gate scans recorded today.");
     return;
   }
@@ -426,7 +479,8 @@ void do_view_logs() {
             << "Last Scan Time\n";
   std::cout << std::string(85, '=') << "\n";
 
-  for (const auto &entry : entries) {
+  for (const auto &entry : entries)
+  {
     std::string last_time = (entry.timestamp_count > 0)
                                 ? entry.timestamps[entry.timestamp_count - 1]
                                 : "N/A";
@@ -439,7 +493,8 @@ void do_view_logs() {
   }
 }
 
-void do_curfew_check() {
+void do_curfew_check()
+{
   print_header("CURFEW COMPLIANCE REPORT (REAL-TIME)");
   std::string today = get_current_date_string();
   std::vector<LogEntry> entries = log_get_all_entries(today.c_str());
@@ -451,13 +506,15 @@ void do_curfew_check() {
   bool anomaly_found = false;
 
   // Print anomalous students
-  std::cout << BOLD << RED << "  STUDENTS OUTSIDE COMPLIANCE:\n" << RESET;
+  std::cout << BOLD << RED << "  STUDENTS OUTSIDE COMPLIANCE:\n"
+            << RESET;
   std::cout << std::left << std::setw(12) << "Roll No" << std::setw(20)
             << "Name" << std::setw(12) << "Role" << std::setw(10) << "Status"
             << std::setw(15) << "Phone Number\n";
   std::cout << std::string(70, '-') << "\n";
 
-  for (const auto &log : entries) {
+  for (const auto &log : entries)
+  {
     // Fetch student master record to confirm type and phone number
     StudentRecord student;
     if (!student_get(log.roll_number, student))
@@ -466,24 +523,31 @@ void do_curfew_check() {
     bool is_anomaly = false;
     std::string role_str = student.is_hosteller ? "Hosteller" : "Day Scholar";
 
-    if (student.is_hosteller && std::strcmp(log.status, "OUT") == 0) {
+    if (student.is_hosteller && std::strcmp(log.status, "OUT") == 0)
+    {
       // Hosteller is outside - check if approved for home leave
       bool on_home_leave = false;
-      for (const auto &hr : gone_home) {
-        if (std::strcmp(hr.roll_number, student.roll_number) == 0) {
+      for (const auto &hr : gone_home)
+      {
+        if (std::strcmp(hr.roll_number, student.roll_number) == 0)
+        {
           on_home_leave = true;
           break;
         }
       }
-      if (!on_home_leave) {
+      if (!on_home_leave)
+      {
         is_anomaly = true;
       }
-    } else if (!student.is_hosteller && std::strcmp(log.status, "IN") == 0) {
+    }
+    else if (!student.is_hosteller && std::strcmp(log.status, "IN") == 0)
+    {
       // Day scholar is still inside campus after curfew
       is_anomaly = true;
     }
 
-    if (is_anomaly) {
+    if (is_anomaly)
+    {
       anomaly_found = true;
       std::cout << std::left << std::setw(12) << student.roll_number
                 << std::setw(20) << student.name << std::setw(12) << role_str
@@ -491,16 +555,19 @@ void do_curfew_check() {
     }
   }
 
-  if (!anomaly_found) {
+  if (!anomaly_found)
+  {
     print_success(
         "All scanned students are fully accounted for and compliant!");
   }
 }
 
-void do_home_list() {
+void do_home_list()
+{
   print_header("STUDENTS AWAY ON APPROVED HOME LEAVE");
   std::vector<HomeRecord> list = home_get_all();
-  if (list.empty()) {
+  if (list.empty())
+  {
     print_warning("No students are currently away on home leave.");
     return;
   }
@@ -511,7 +578,8 @@ void do_home_list() {
             << "Contact Info\n";
   std::cout << std::string(80, '=') << "\n";
 
-  for (const auto &r : list) {
+  for (const auto &r : list)
+  {
     std::cout << std::left << std::setw(12) << r.roll_number << std::setw(20)
               << r.name << std::setw(8) << r.year << std::setw(15)
               << r.date_of_leaving << std::setw(15) << r.time_of_leaving
@@ -519,34 +587,42 @@ void do_home_list() {
   }
 }
 
-void do_batch_promote() {
+void do_batch_promote()
+{
   print_header("BATCH PROMOTION PANEL");
   std::cout << "  [1] Promote a specific batch\n  [2] Promote ALL students\n  "
                "Select option: ";
   int choice;
   std::cin >> choice;
 
-  if (choice == 1) {
+  if (choice == 1)
+  {
     std::cout << "  Enter batch name to promote (e.g. 2026): ";
     std::string batch;
     std::cin >> batch;
     int promoted = batch_promote(batch.c_str());
     std::cout << BOLD << GREEN << "\n  Successfully promoted " << promoted
               << " students in batch " << batch << "!" << RESET << "\n";
-  } else if (choice == 2) {
+  }
+  else if (choice == 2)
+  {
     int promoted = batch_promote_all();
     std::cout << BOLD << GREEN << "\n  Successfully promoted " << promoted
               << " students globally!" << RESET << "\n";
-  } else {
+  }
+  else
+  {
     print_error("Invalid selection.");
   }
 }
 
-void do_view_master_db() {
+void do_view_master_db()
+{
   print_header("STUDENT MASTER DATABASE");
   std::vector<StudentRecord> students = student_list_all();
 
-  if (students.empty()) {
+  if (students.empty())
+  {
     print_warning("No students currently enrolled in master database.");
     return;
   }
@@ -558,7 +634,8 @@ void do_view_master_db() {
             << "Fingerprint Hash (FNV-1a)\n";
   std::cout << std::string(105, '=') << "\n";
 
-  for (const auto &student : students) {
+  for (const auto &student : students)
+  {
     std::string role_str = student.is_hosteller ? "Hosteller" : "Day Scholar";
     uint32_t hash = compute_fnv1a_hash(student.fingerprint_template, 512);
 
@@ -573,7 +650,8 @@ void do_view_master_db() {
 }
 
 // [DEV ONLY] Nuke the entire database for a fresh start
-void do_nuke_database() {
+void do_nuke_database()
+{
   print_header("[DEV ONLY] DATABASE WIPE");
   std::cout << BOLD << RED
             << "\n  !!! DANGER ZONE !!!\n"
@@ -590,7 +668,8 @@ void do_nuke_database() {
   std::string confirm;
   std::cin >> confirm;
 
-  if (confirm != "DELETE") {
+  if (confirm != "DELETE")
+  {
     print_warning("Database wipe cancelled. No data was modified.");
     return;
   }
@@ -599,31 +678,38 @@ void do_nuke_database() {
   std::string confirm2;
   std::cin >> confirm2;
 
-  if (confirm2 != "YES") {
+  if (confirm2 != "YES")
+  {
     print_warning("Database wipe cancelled. No data was modified.");
     return;
   }
 
-  if (engine_wipe_all_data()) {
+  if (engine_wipe_all_data())
+  {
     print_success("All data has been wiped! Database is now clean.");
     print_success("You can now enroll new students from scratch.");
-  } else {
+  }
+  else
+  {
     print_error("Failed to wipe database. Check console for errors.");
   }
 }
 
-int main() {
+int main()
+{
   // Determine target database path relative to workspace or absolute path
   // For local testing in the build workspace, we create a db_root directory
   std::string db_root = "db_root";
 
-  if (!engine_init(db_root.c_str())) {
+  if (!engine_init(db_root.c_str()))
+  {
     std::cerr << "CRITICAL ERROR: Failed to initialize C++ Database Engine!"
               << std::endl;
     return 1;
   }
 
-  while (true) {
+  while (true)
+  {
     std::cout << BOLD << MAGENTA
               << "\n==========================================================="
                  "===========\n";
@@ -642,18 +728,21 @@ int main() {
     std::cout << "  6. Batch Promotion Utilities\n";
     std::cout << "  7. View Student Master Database\n";
     std::cout << "  8. Shutdown & Exit\n";
-    std::cout << BOLD << RED << "  9. [DEV ONLY] Wipe Entire Database\n" << RESET;
+    std::cout << BOLD << RED << "  9. [DEV ONLY] Wipe Entire Database\n"
+              << RESET;
     std::cout << "\n  Please select an option: ";
 
     int option;
     std::cin >> option;
-    if (std::cin.fail()) {
+    if (std::cin.fail())
+    {
       std::cin.clear();
       std::cin.ignore(10000, '\n');
       print_error("Invalid option entered. Please choose 1-9.");
       continue;
     }
-    switch (option) {
+    switch (option)
+    {
     case 1:
       do_enroll();
       break;
