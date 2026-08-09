@@ -15,7 +15,7 @@ Patent Office
 
 ## 1. Executive Summary & Package Overview
 
-This report presents an exhaustive technical evaluation, empirical performance audit, queueing theory analysis, and strategic publication/IP roadmap for the Campus Biometric Gate Entry Management System. University campuses face severe gate entry bottlenecks, security vulnerabilities from proxy logging ("buddy punching"), display wear, and user friction from physical direction buttons ("IN"/"OUT"). Legacy paper logbooks and static RFID systems fail to provide real-time curfew visibility or dynamic leave reconciliation.
+This report presents an exhaustive technical evaluation, empirical performance audit, queueing theory analysis, and strategic publication/IP roadmap for the Campus Biometric Gate Entry Management System. University campuses face severe gate entry bottlenecks, security vulnerabilities from proxy logging ("buddy punching"), display wear, and user friction from physical direction buttons ("IN"/"OUT"). log registers and static RFID(radio freqeuncy identification) systems fail to provide real-time curfew visibility or dynamic leave reconciliation.
 
 The proposed system solves these critical challenges through a novel hardware-software co-design. At its core is a zero-friction, residency-aware finite state machine that automatically infers entry/exit direction based on count parity and student residency type ( is_hosteller ) without requiring manual soft-button toggling or expensive dual-reader hardware. The backend utilizes a decoupled dual-tier architecture combining a low-latency C++ database engine (binary serialization, FNV-1a hash indexing, raw fstream I/O) with an administrative Python application layer for leave workflow management and automated curfew auditing.
 
