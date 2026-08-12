@@ -61,6 +61,18 @@ Standard access control systems face a fundamental dilemma:
 
 Our system introduces a **Dual-Tier Coarse-to-Fine Matching Innovation** that combines both paradigms:
 
+### 3.1 Hash Hit Probabilities & Threshold Search Loop
+
+1. **What are the chances exact hashing works on a live scan?**
+   - For **raw un-quantized scans**, noise reduces exact 512-byte hash hit rates to **~5% – 15%**.
+   - For **quantized / binned features** (e.g., BioHashing / LSH projections), exact hash hit rates increase to **> 85%**.
+
+2. **What happens if the hash is different (Hash Miss)?**
+   - **YES, the engine automatically runs the Level-2 fuzzy matcher across all students!**
+   - If the Level-1 hash misses, the engine iterates through all enrolled student records (`student_list_all()`), computes similarity scores via `crypto_match_evaluate()`, and selects the candidate with the highest confidence score that satisfies:
+     $$\text{Confidence Score} \ge \text{MATCH\_THRESHOLD} \quad (0.75 / 75\%)$$
+   - **Zero False Rejections**: Even if live scan noise changes the hash completely, the student is successfully verified as long as their biometric similarity crosses the 75% confidence threshold.
+
 ```
                        DUAL-TIER MATCHING ARCHITECTURE
 
