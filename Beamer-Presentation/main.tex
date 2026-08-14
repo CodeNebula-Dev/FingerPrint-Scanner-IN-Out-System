@@ -5,36 +5,91 @@
 \documentclass[aspectratio=169, 11pt]{beamer}
 
 % ----------------------------------------------------------------------------
-% THEME & STYLING
+% THEME & STYLING (CLEAN, SHADOW-FREE ACADEMIC THEME)
 % ----------------------------------------------------------------------------
 \usetheme{Madrid}
-\usecolortheme{seahorse}
 \usefonttheme{professionalfonts}
 
-% Custom colour palette — deep academic blue + accent gold
-\definecolor{PrimaryBlue}{RGB}{15, 32, 75}
-\definecolor{AccentGold}{RGB}{212, 175, 55}
-\definecolor{LightGray}{RGB}{245, 245, 248}
-\definecolor{CodeGreen}{RGB}{40, 167, 69}
-\definecolor{DangerRed}{RGB}{220, 53, 69}
-\definecolor{InfoBlue}{RGB}{23, 162, 184}
+% Custom colour palette — deep academic navy + rich gold + modern status tones
+\definecolor{PrimaryBlue}{RGB}{16, 37, 78}
+\definecolor{SecondaryBlue}{RGB}{28, 62, 126}
+\definecolor{AccentGold}{RGB}{205, 155, 30}
+\definecolor{LightBg}{RGB}{246, 248, 252}
+\definecolor{CodeGreen}{RGB}{28, 138, 56}
+\definecolor{DangerRed}{RGB}{198, 40, 40}
+\definecolor{InfoBlue}{RGB}{13, 110, 153}
+\definecolor{BorderGray}{RGB}{218, 224, 233}
 
+% Beamer Palette Overrides
 \setbeamercolor{palette primary}{bg=PrimaryBlue, fg=white}
-\setbeamercolor{palette secondary}{bg=PrimaryBlue!80, fg=white}
+\setbeamercolor{palette secondary}{bg=SecondaryBlue, fg=white}
 \setbeamercolor{palette tertiary}{bg=PrimaryBlue, fg=white}
 \setbeamercolor{palette quaternary}{bg=AccentGold, fg=PrimaryBlue}
 \setbeamercolor{structure}{fg=PrimaryBlue}
 \setbeamercolor{title}{fg=white, bg=PrimaryBlue}
 \setbeamercolor{frametitle}{fg=white, bg=PrimaryBlue}
+
+% ----------------------------------------------------------------------------
+% CRITICAL FIX: Custom Robust Shadow-Free Block Templates
+% Eliminates all black rectangle / drop-shadow shading bugs in Overleaf & PDF viewers
+% ----------------------------------------------------------------------------
 \setbeamercolor{block title}{bg=PrimaryBlue, fg=white}
-\setbeamercolor{block body}{bg=LightGray, fg=black}
+\setbeamercolor{block body}{bg=LightBg, fg=black}
 \setbeamercolor{block title alerted}{bg=DangerRed, fg=white}
-\setbeamercolor{block body alerted}{bg=DangerRed!10, fg=black}
-\setbeamercolor{block title example}{bg=CodeGreen!80, fg=white}
-\setbeamercolor{block body example}{bg=CodeGreen!10, fg=black}
+\setbeamercolor{block body alerted}{bg=DangerRed!8, fg=black}
+\setbeamercolor{block title example}{bg=CodeGreen, fg=white}
+\setbeamercolor{block body example}{bg=CodeGreen!8, fg=black}
 \setbeamercolor{item}{fg=PrimaryBlue}
 
-% Footer with slide numbers
+% Use clean standard blocks with NO shading engine
+\setbeamertemplate{blocks}[default]
+
+\setbeamertemplate{block begin}{
+  \vskip\smallskipamount
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true]{block title}%
+    \usebeamerfont*{block title}\textbf{\insertblocktitle}%
+  \end{beamercolorbox}%
+  {\parskip0pt\par}%
+  \ifbeamercolorempty[bg]{block title}{}{\nointerlineskip\vskip-0.5pt}%
+  \usebeamerfont{block body}%
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true,vmode]{block body}%
+    \ifbeamercolorempty[bg]{block body}{\vskip-.25ex}{\vskip-.5ex}\vbox{}%
+}
+\setbeamertemplate{block end}{
+  \end{beamercolorbox}\vskip\smallskipamount
+}
+
+\setbeamertemplate{block alerted begin}{
+  \vskip\smallskipamount
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true]{block title alerted}%
+    \usebeamerfont*{block title alerted}\textbf{\insertblocktitle}%
+  \end{beamercolorbox}%
+  {\parskip0pt\par}%
+  \ifbeamercolorempty[bg]{block title alerted}{}{\nointerlineskip\vskip-0.5pt}%
+  \usebeamerfont{block body alerted}%
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true,vmode]{block body alerted}%
+    \ifbeamercolorempty[bg]{block body alerted}{\vskip-.25ex}{\vskip-.5ex}\vbox{}%
+}
+\setbeamertemplate{block alerted end}{
+  \end{beamercolorbox}\vskip\smallskipamount
+}
+
+\setbeamertemplate{block example begin}{
+  \vskip\smallskipamount
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true]{block title example}%
+    \usebeamerfont*{block title example}\textbf{\insertblocktitle}%
+  \end{beamercolorbox}%
+  {\parskip0pt\par}%
+  \ifbeamercolorempty[bg]{block title example}{}{\nointerlineskip\vskip-0.5pt}%
+  \usebeamerfont{block body example}%
+  \begin{beamercolorbox}[colsep*=0.75ex,rounded=true,vmode]{block body example}%
+    \ifbeamercolorempty[bg]{block body example}{\vskip-.25ex}{\vskip-.5ex}\vbox{}%
+}
+\setbeamertemplate{block example end}{
+  \end{beamercolorbox}\vskip\smallskipamount
+}
+
+% Footer with clean metadata and slide numbers
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}{
   \leavevmode\hbox{%
@@ -77,8 +132,8 @@
   stringstyle=\color{CodeGreen},
   breaklines=true,
   frame=single,
-  rulecolor=\color{PrimaryBlue!30},
-  backgroundcolor=\color{LightGray},
+  rulecolor=\color{BorderGray},
+  backgroundcolor=\color{LightBg},
   numbers=left,
   numberstyle=\tiny\color{gray},
   tabsize=4,
@@ -111,12 +166,12 @@
 % ============================================================================
 \begin{document}
 
-% ---------- TITLE SLIDE ----------
+% ---------- SLIDE 1: TITLE SLIDE ----------
 \begin{frame}[plain]
   \titlepage
 \end{frame}
 
-% ---------- TABLE OF CONTENTS ----------
+% ---------- SLIDE 2: TABLE OF CONTENTS ----------
 \begin{frame}{Presentation Outline}
   \tableofcontents[hideallsubsections]
 \end{frame}
@@ -125,6 +180,7 @@
 \section{Problem Statement \& Motivation}
 % ============================================================================
 
+% ---------- SLIDE 3: PROBLEM STATEMENT ----------
 \begin{frame}{The Campus Gate Problem}
   \begin{columns}[T]
     \begin{column}{0.55\textwidth}
@@ -136,7 +192,7 @@
         \item \textcolor{DangerRed}{\faTimesCircle} \textbf{No leave reconciliation} — false curfew alerts
         \item \textcolor{DangerRed}{\faTimesCircle} \textbf{Plaintext biometric storage} — privacy breach liability
       \end{itemize}
-      \vspace{0.5em}
+      \vspace{0.3em}
       \begin{alertblock}{Peak Hour Queue Collapse}
         At $\lambda \approx 30$ students/min, standard biometric terminals ($1/\mu \approx 6$ sec) produce $\rho = 3.0$ $\Rightarrow$ \textbf{infinite queue growth}.
       \end{alertblock}
@@ -166,46 +222,44 @@
 \section{System Architecture}
 % ============================================================================
 
+% ---------- SLIDE 4: SYSTEM ARCHITECTURE ----------
 \begin{frame}{Dual-Tier Decoupled Architecture}
   \begin{center}
   \begin{tikzpicture}[
-      node distance=0.6cm,
-      box/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!8, thick, rounded corners=3pt, minimum width=4.2cm, minimum height=0.8cm, font=\small, align=center},
-      bigbox/.style={rectangle, draw=PrimaryBlue, fill=white, thick, rounded corners=5pt, minimum width=14cm, minimum height=1.2cm, font=\small\bfseries, align=center},
-      arrow/.style={-{Stealth[length=3mm]}, thick, PrimaryBlue},
-      label/.style={font=\tiny\itshape, text=gray}
+      scale=0.88, every node/.style={transform shape},
+      box/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!8, thick, rounded corners=3pt, minimum width=3.1cm, minimum height=0.72cm, font=\small, align=center},
+      bigbox/.style={rectangle, draw=PrimaryBlue, fill=white, thick, rounded corners=4pt, minimum width=13.0cm, minimum height=0.9cm, font=\small\bfseries, align=center},
+      arrow/.style={-{Stealth[length=2.5mm]}, thick, PrimaryBlue}
     ]
 
     % Python Layer
-    \node[bigbox, fill=AccentGold!15] (python) {\faIcon{python} \textbf{Python Administrative Application Layer} — GUI Panels, Leave Workflows, Excel Reports};
+    \node[bigbox, fill=AccentGold!15] (python) at (0, 2.6) {\faIcon{python} \textbf{Python Administrative Application Layer} — GUI Panels, Leave Workflows, Excel Reports};
 
     % Bridge
-    \node[rectangle, draw=AccentGold, fill=AccentGold!30, thick, rounded corners=2pt,
-          minimum width=3cm, minimum height=0.5cm, font=\scriptsize\bfseries,
-          below=0.4cm of python] (bridge) {C-ABI Bridge (\texttt{ctypes})};
+    \node[rectangle, draw=AccentGold, fill=AccentGold!35, thick, rounded corners=2pt, minimum width=3.2cm, minimum height=0.45cm, font=\scriptsize\bfseries] (bridge) at (0, 1.6) {C-ABI Bridge (\texttt{ctypes})};
 
     % Engine
-    \node[bigbox, fill=PrimaryBlue!10, below=0.4cm of bridge] (engine) {\faIcon{cogs} \textbf{Bare-Metal C++17 Biometric Engine v2.0}};
+    \node[bigbox, fill=PrimaryBlue!10] (engine) at (0, 0.7) {\faIcon{cogs} \textbf{Bare-Metal C++17 Biometric Engine v2.0}};
 
-    % Engine sub-modules
-    \node[box, below=0.5cm of engine, xshift=-4.8cm] (master) {Master DB\\(\texttt{master\_db.cpp})};
-    \node[box, below=0.5cm of engine, xshift=-1.6cm] (indexer) {FNV-1a Indexer\\(\texttt{indexer.cpp})};
-    \node[box, below=0.5cm of engine, xshift=1.6cm] (crypto) {\textcolor{DangerRed}{\faLock} BioHash Crypto\\(\texttt{crypto\_placeholder.cpp})};
-    \node[box, below=0.5cm of engine, xshift=4.8cm] (finger) {Match Delegate\\(\texttt{fingerprint.cpp})};
+    % Engine sub-modules (4 boxes evenly spaced across width)
+    \node[box] (master)  at (-4.65, -0.45) {Master DB\\(\texttt{master\_db.cpp})};
+    \node[box] (indexer) at (-1.55, -0.45) {FNV-1a Indexer\\(\texttt{indexer.cpp})};
+    \node[box] (crypto)  at (1.55, -0.45)  {\textcolor{DangerRed}{\faLock} BioHash Crypto\\(\texttt{crypto\_placeholder.cpp})};
+    \node[box] (finger)  at (4.65, -0.45)  {Match Delegate\\(\texttt{fingerprint.cpp})};
 
     % Storage
-    \node[bigbox, fill=LightGray, below=0.5cm of indexer, yshift=-0.3cm, xshift=1.6cm] (storage) {\faIcon{database} Localized Binary File Store — \texttt{Student\_data/}, \texttt{Everyday\_data/}, \texttt{biohash.key}};
+    \node[bigbox, fill=LightBg, draw=BorderGray] (storage) at (0, -1.6) {\faIcon{database} \textbf{Localized Binary File Store} — \texttt{Student\_data/}, \texttt{Everyday\_data/}, \texttt{biohash.key}};
 
     % Arrows
     \draw[arrow] (python) -- (bridge);
     \draw[arrow] (bridge) -- (engine);
-    \draw[arrow] (engine) -- (master);
-    \draw[arrow] (engine) -- (indexer);
-    \draw[arrow] (engine) -- (crypto);
-    \draw[arrow] (engine) -- (finger);
-    \draw[arrow] (master) -- (storage);
-    \draw[arrow] (indexer) -- (storage);
-    \draw[arrow, DangerRed] (crypto) -- (finger);
+    \draw[arrow] (engine.south -| master.north) -- (master.north);
+    \draw[arrow] (engine.south -| indexer.north) -- (indexer.north);
+    \draw[arrow] (engine.south -| crypto.north) -- (crypto.north);
+    \draw[arrow] (engine.south -| finger.north) -- (finger.north);
+    \draw[arrow] (master.south) -- (master.south |- storage.north);
+    \draw[arrow] (indexer.south) -- (indexer.south |- storage.north);
+    \draw[arrow, DangerRed] (crypto.east) -- (finger.west);
 
   \end{tikzpicture}
   \end{center}
@@ -215,13 +269,14 @@
 \section{Innovation 1: Residency-Aware Parity State Machine}
 % ============================================================================
 
+% ---------- SLIDE 5: PARITY STATE MACHINE ----------
 \begin{frame}{Zero-Friction Direction Detection}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
       \begin{block}{Formal State Transition Rules}
         \small
-        Given scan count $n \in \mathbb{N}$ for a student on the current date:
-        \vspace{0.3em}
+        Given scan count $n \in \mathbb{N}$ for a student on current date:
+        \vspace{0.2em}
 
         \textbf{Hosteller} (initial state: INSIDE):
         \[
@@ -244,11 +299,11 @@
       \begin{exampleblock}{Implementation (C++17)}
         \lstinputlisting[language=C++, firstline=1, lastline=8]{snippets/parity_logic.cpp}
       \end{exampleblock}
-      \vspace{0.3em}
+      \vspace{0.2em}
       \begin{block}{Key Differentiator}
         \small
-        \textbf{Anti-passback:} Dual IR beam-break \textit{hardware} sensors.\\[0.3em]
-        \textbf{Our approach:} Software logic + domain metadata.\\[0.3em]
+        \textbf{Anti-passback:} Dual IR beam-break \textit{hardware}.\\[0.15em]
+        \textbf{Our approach:} Software logic + domain metadata.\\[0.15em]
         \textcolor{CodeGreen}{\faCheckCircle} \textbf{Zero additional hardware.}\\
         \textcolor{CodeGreen}{\faCheckCircle} \textbf{Zero manual user input.}
       \end{block}
@@ -260,38 +315,39 @@
 \section{Innovation 2: BioHashing Cancelable Encryption}
 % ============================================================================
 
+% ---------- SLIDE 6: BIOHASHING THEORY (COMPACT MATH — NO OVERFLOW) ----------
 \begin{frame}{BioHashing: Random Orthogonal Projection + Binarization}
   \begin{columns}[T]
-    \begin{column}{0.52\textwidth}
+    \begin{column}{0.53\textwidth}
       \begin{block}{Mathematical Foundation}
         \small
-        Given raw biometric $X \in \mathbb{R}^n$, secret seed $K$, and random projection matrix $R \in \mathbb{R}^{m \times n}$ generated from $K$:
+        Raw template $X \in \mathbb{R}^{512}$, key seed $K$, random projection matrix $R \in \mathbb{R}^{512 \times 512}$ generated from $K$:
         \vspace{0.3em}
 
-        \textbf{1. Projection:}
-        \[ P_i = \sum_{j=1}^{n} R_{ij} \cdot X_j \quad \text{(dot product)} \]
+        \textbf{1. Projection (Dot Product):}
+        \[ P_i = \sum_{j=1}^{512} R_{ij} \cdot X_j = R_i \cdot X \]
 
-        \textbf{2. Binarization:}
-        \[ Y_i = \begin{cases} 1 & P_i \geq 0 \\ 0 & P_i < 0 \end{cases} \]
+        \textbf{2. Binarization (Sign Function):}
+        \[ Y_i = \begin{cases} 1 & \text{if } P_i \geq 0 \\ 0 & \text{if } P_i < 0 \end{cases} \quad \implies Y \in \{0,1\}^{512} \]
 
-        \textbf{3. Matching (Hamming Distance):}
-        \[ \text{Score} = 1 - \frac{d_H(Y_{\text{live}}, Y_{\text{stored}})}{512} \]
+        \textbf{3. Transformed Matching (Hamming):}
+        \[ \text{Score} = 1.0 - \frac{d_H(Y_{\text{live}}, Y_{\text{stored}})}{512} \geq 0.75 \]
       \end{block}
     \end{column}
-    \begin{column}{0.45\textwidth}
+    \begin{column}{0.44\textwidth}
       \begin{block}{ISO/IEC 24745 Compliance}
         \small
         \begin{tabular}{lc}
           \toprule
           \textbf{Property} & \textbf{Status} \\
           \midrule
-          Irreversibility & \textcolor{CodeGreen}{\faCheckCircle} \\
-          Unlinkability & \textcolor{CodeGreen}{\faCheckCircle} \\
-          Renewability & \textcolor{CodeGreen}{\faCheckCircle} \\
+          Irreversibility & \textcolor{CodeGreen}{\faCheckCircle\ Satisfied} \\
+          Unlinkability & \textcolor{CodeGreen}{\faCheckCircle\ Satisfied} \\
+          Renewability & \textcolor{CodeGreen}{\faCheckCircle\ Satisfied} \\
           \bottomrule
         \end{tabular}
       \end{block}
-      \vspace{0.3em}
+      \vspace{0.2em}
       \begin{alertblock}{Security Bounds}
         \small
         \textbf{Key space:} $2^{64} \approx 1.84 \times 10^{19}$\\
@@ -302,40 +358,40 @@
   \end{columns}
 \end{frame}
 
+% ---------- SLIDE 7: BUFFER LAYOUT & ENROLLMENT (PERFECTLY CENTERED — NO CLIPPING) ----------
 \begin{frame}{Encrypted Template Buffer Layout}
   \begin{center}
   \begin{tikzpicture}[
-      block/.style={rectangle, draw=PrimaryBlue, thick, minimum height=1.5cm, font=\small, align=center},
+      scale=0.90, every node/.style={transform shape},
+      box/.style={rectangle, draw=PrimaryBlue, thick, rounded corners=4pt, align=center, font=\small},
     ]
-    % BioHash Code block
-    \node[block, fill=PrimaryBlue!15, minimum width=4cm] (bio) at (0,0) {
+    % Surrounding dashed box for total 512 bytes
+    \draw[PrimaryBlue!50, dashed, thick, fill=LightBg, rounded corners=6pt] (-6.3, -0.9) rectangle (6.3, 1.3);
+    \node[above, font=\footnotesize\bfseries, text=PrimaryBlue] at (0, 1.35) {\texttt{StudentRecord.encrypted\_template[512]} — 512 Bytes Total Payload};
+
+    % Left Box: Binarized BioHash Code (Bytes 0..63)
+    \node[box, fill=PrimaryBlue!15, minimum width=4.4cm, minimum height=1.4cm] (bio) at (-3.4, 0.2) {
       \textbf{Binarized BioHash Code}\\
       \scriptsize 512 bits packed into 64 bytes\\
-      \scriptsize Used for: Indexing + Matching
+      \scriptsize Used for: \textbf{Indexing \& Matching}
     };
-    \node[above=0.1cm of bio, font=\scriptsize\bfseries, text=PrimaryBlue] {Bytes [0..63]};
+    \node[above=0.06cm of bio, font=\scriptsize\bfseries, text=PrimaryBlue] {Bytes [0..63] (64 B)};
 
-    % Dot products block
-    \node[block, fill=AccentGold!15, minimum width=7cm, right=0.3cm of bio] (dot) {
-      \textbf{Quantized Pre-Binarization Dot Products}\\
+    % Right Box: Quantized Dot Products (Bytes 64..511)
+    \node[box, fill=AccentGold!20, draw=AccentGold!80!black, minimum width=6.6cm, minimum height=1.4cm] (dot) at (2.5, 0.2) {
+      \textbf{Quantized Dot Products ($P_i$)}\\
       \scriptsize 224 $\times$ \texttt{int16} values (scale factor 10,000)\\
-      \scriptsize Used for: ISO/IEC 24745 Re-Keying \textit{only}
+      \scriptsize Used for: \textbf{ISO/IEC 24745 Re-Keying Only}
     };
-    \node[above=0.1cm of dot, font=\scriptsize\bfseries, text=AccentGold!80!black] {Bytes [64..511]};
+    \node[above=0.06cm of dot, font=\scriptsize\bfseries, text=AccentGold!80!black] {Bytes [64..511] (448 B)};
 
-    % Surrounding box
-    \begin{scope}[on background layer]
-      \node[fit=(bio)(dot), rectangle, draw=PrimaryBlue!50, dashed, thick, inner sep=0.3cm, rounded corners=5pt] (outer) {};
-    \end{scope}
-    \node[above=0.15cm of outer, font=\small\bfseries] {\texttt{encrypted\_template[512]} — Total 512 Bytes};
-
-    % Pipeline below
-    \node[below=1.2cm of bio, font=\small, align=center] (pipeline) {
-      \textbf{Enrollment Pipeline:}\\[0.2em]
-      \scriptsize Raw Template $\xrightarrow{\text{Normalize}}$ $X \in [0,1]^{512}$
-      $\xrightarrow{\text{Project } R \cdot X}$ $P \in \mathbb{R}^{512}$
-      $\xrightarrow{\text{Binarize } \text{sign}(P)}$ $Y \in \{0,1\}^{512}$
-      $\xrightarrow{\text{Pack}}$ \texttt{encrypted\_template}
+    % Pipeline description box below
+    \node[rectangle, draw=BorderGray, fill=white, rounded corners=4pt, minimum width=12.6cm, inner sep=5pt, font=\scriptsize, align=center] at (0, -1.8) {
+      \textbf{Enrollment Pipeline:}\quad
+      $\text{Raw Minutiae } X \in [0,1]^{512}
+      \xrightarrow{\text{Project } R \cdot X} P \in \mathbb{R}^{512}
+      \xrightarrow{\text{Binarize } \text{sign}(P)} Y \in \{0,1\}^{512}
+      \xrightarrow{\text{Store}} \texttt{encrypted\_template}$
     };
   \end{tikzpicture}
   \end{center}
@@ -345,33 +401,46 @@
 \section{Innovation 3: Dual-Tier Coarse-to-Fine Matching}
 % ============================================================================
 
+% ---------- SLIDE 8: DUAL-TIER MATCHING PIPELINE (PERFECT SPACING & CLEAN ARROWS) ----------
 \begin{frame}{Dual-Tier Matching Pipeline}
   \begin{center}
   \begin{tikzpicture}[
-      node distance=0.7cm,
-      step/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!8, thick, rounded corners=3pt, minimum width=10cm, minimum height=0.7cm, font=\small, align=center},
-      decision/.style={diamond, draw=AccentGold, fill=AccentGold!15, thick, aspect=3, font=\small, inner sep=1pt},
-      arrow/.style={-{Stealth[length=2.5mm]}, thick, PrimaryBlue},
+      scale=0.82, every node/.style={transform shape},
+      step/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!8, thick, rounded corners=3pt, minimum width=9.2cm, minimum height=0.55cm, font=\footnotesize, align=center},
+      decision/.style={diamond, draw=AccentGold, fill=AccentGold!20, thick, aspect=2.6, font=\scriptsize\bfseries, inner sep=1.2pt},
+      branch/.style={rectangle, draw=BorderGray, thick, rounded corners=3pt, minimum width=4.0cm, minimum height=0.5cm, font=\scriptsize, align=center},
+      arrow/.style={-{Stealth[length=2mm]}, thick, PrimaryBlue},
     ]
 
-    \node[step] (scan) {\faIcon{fingerprint} Live Optical Scan — 512-byte Raw Template};
-    \node[step, below=of scan, fill=DangerRed!10] (transform) {\faLock\ \textbf{BioHash Transform} — \texttt{crypto\_enroll\_transform(X, K)} $\rightarrow Y_{\text{live}}$};
-    \node[step, below=of transform] (hash) {\textbf{Level-1 Coarse Filter} — FNV-1a Hash of $Y_{\text{live}}$ $\rightarrow$ $O(1)$ RAM Lookup};
+    \node[step] (scan) at (0, 3.6) {\faIcon{fingerprint} \textbf{Live Optical Scan} — 512-byte Raw Template $X_{\text{live}}$};
+    \node[step, fill=DangerRed!8] (transform) at (0, 2.7) {\faLock\ \textbf{BioHash Transform} — $Y_{\text{live}} = \text{sign}(R \cdot X_{\text{live}})$ (\texttt{crypto\_enroll\_transform})};
+    \node[step] (hash) at (0, 1.8) {\textbf{Level-1 Coarse Filter} — FNV-1a Hash of $Y_{\text{live}}[0..63]$ $\rightarrow$ $O(1)$ RAM Lookup};
 
-    \node[decision, below=0.6cm of hash] (hit) {Hash Hit?};
+    \node[decision] (hit) at (0, 0.9) {Hash Hit?};
 
-    \node[step, below left=0.7cm and -1cm of hit, fill=CodeGreen!10, minimum width=4.5cm] (instant) {\textcolor{CodeGreen}{\faCheckCircle} Instant Candidate};
-    \node[step, below right=0.7cm and -1cm of hit, fill=AccentGold!10, minimum width=4.5cm] (fallback) {\textcolor{AccentGold!80!black}{\faExclamationTriangle} Level-2 Full Scan};
+    \node[branch, fill=CodeGreen!12] (instant) at (-2.6, 0.0) {
+      \textcolor{CodeGreen}{\faCheckCircle\ \textbf{Exact Hash Match}}\\
+      \tiny Direct Candidate Verification ($O(1)$)
+    };
+    \node[branch, fill=AccentGold!15] (fallback) at (2.6, 0.0) {
+      \textcolor{AccentGold!80!black}{\faExclamationTriangle\ \textbf{Hash Miss (Noise)}}\\
+      \tiny Level-2 Full Population Scan ($O(N)$)
+    };
 
-    \node[step, below=1.5cm of hit, fill=PrimaryBlue!12] (match) {\textbf{Level-2 Hamming Distance} — $\text{Score} = 1 - d_H / 512 \geq 0.75$ $\Rightarrow$ \textcolor{CodeGreen}{\textbf{MATCH}}};
+    \node[step, fill=CodeGreen!10, draw=CodeGreen!80!black] (match) at (0, -1.0) {
+      \textbf{Level-2 Transformed Domain Matcher} (\texttt{crypto\_match\_evaluate})\\
+      \scriptsize $\text{Similarity Score} = 1.0 - \frac{d_H(Y_{\text{live}}, Y_{\text{candidate}})}{512} \geq 0.75 \quad\Longrightarrow\quad$ \textcolor{CodeGreen}{\textbf{MATCH CONFIRMED}}
+    };
 
     \draw[arrow] (scan) -- (transform);
     \draw[arrow] (transform) -- (hash);
     \draw[arrow] (hash) -- (hit);
-    \draw[arrow] (hit) -| node[above, font=\scriptsize]{Yes} (instant);
-    \draw[arrow] (hit) -| node[above, font=\scriptsize]{No (Noise)} (fallback);
-    \draw[arrow] (instant) |- (match);
-    \draw[arrow] (fallback) |- (match);
+
+    \draw[arrow] (hit) -| node[above, font=\tiny\bfseries, text=CodeGreen]{Yes} (instant.north);
+    \draw[arrow] (hit) -| node[above, font=\tiny\bfseries, text=DangerRed]{No} (fallback.north);
+
+    \draw[arrow] (instant.south) |- (match.west);
+    \draw[arrow] (fallback.south) |- (match.east);
   \end{tikzpicture}
   \end{center}
 \end{frame}
@@ -380,25 +449,26 @@
 \section{Innovation 4: Integrated Leave \& Curfew Engine}
 % ============================================================================
 
+% ---------- SLIDE 9: HOME LEAVE RECONCILIATION & CURFEW AUDIT ----------
 \begin{frame}{Home Leave Reconciliation \& Curfew Audit}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \begin{block}{Problem}
+      \begin{block}{Problem: Multi-Day Absence}
         \small
-        Standard systems flag students on approved multi-day home leave as ``missing'' during nightly curfew checks.
+        Standard systems flag students on approved home leave as ``missing'' during nightly curfew audits.
         \begin{itemize}
-          \item No commercial terminal offers native leave queue management
-          \item ZKTeco ZKBioTime, Hikvision iVMS-4200 — \textbf{no leave awareness}
+          \item Commercial access control lacks leave queues
+          \item ZKTeco / Hikvision — \textbf{no leave awareness}
         \end{itemize}
       \end{block}
-      \vspace{0.3em}
-      \begin{exampleblock}{Our Solution}
+      \vspace{0.2em}
+      \begin{exampleblock}{Solution: Automated Leave Sync}
         \small
         \begin{enumerate}
           \item Warden approves leave $\rightarrow$ \texttt{HomeRecord} created
-          \item 18:30 curfew audit \textbf{auto-excludes} approved leaves
-          \item Return scan \textbf{auto-clears} leave record
-          \item Zero false curfew alerts
+          \item 18:30 audit \textbf{auto-excludes} active leaves
+          \item Return scan \textbf{auto-clears} leave registry
+          \item Result: \textbf{Zero false curfew alerts}
         \end{enumerate}
       \end{exampleblock}
     \end{column}
@@ -406,20 +476,20 @@
       \begin{block}{Automated Curfew Audit Pipeline}
         \small
         \begin{enumerate}
-          \item Parse active daily logs at 18:30
-          \item Identify odd-parity counts (unreturned students)
+          \item Parse active daily logs at 18:30 cutoff
+          \item Identify odd-parity counts (unreturned)
           \item Query \texttt{home\_exists(roll\_number)}
           \item \textbf{Exclude} approved \texttt{HomeRecord} students
-          \item Generate actionable warden report with emergency contacts
+          \item Generate emergency warden report
         \end{enumerate}
       \end{block}
-      \vspace{0.3em}
-      \begin{block}{Data Store}
+      \vspace{0.2em}
+      \begin{block}{Isolated Data Partitions}
         \small
         \begin{tabular}{ll}
-          \texttt{Home\_data/} & Active leave records \\
-          \texttt{Everyday\_data/} & Date-partitioned logs \\
-          \texttt{Rejection\_log/} & Failed scan audit trail \\
+          \texttt{Home\_data/} & Active leave records (\texttt{.dat}) \\
+          \texttt{Everyday\_data/} & Date-partitioned logs (\texttt{.dat}) \\
+          \texttt{Rejection\_log/} & Failed scan audit trail (\texttt{.dat}) \\
         \end{tabular}
       \end{block}
     \end{column}
@@ -430,21 +500,22 @@
 \section{Performance Analysis}
 % ============================================================================
 
+% ---------- SLIDE 10: QUEUEING THEORY ANALYSIS ----------
 \begin{frame}{Queueing Theory: M/M/1 Bottleneck Elimination}
   \begin{columns}[T]
     \begin{column}{0.55\textwidth}
       \begin{block}{Peak Hour Model ($\lambda \approx 33$ students/min)}
         \small
-        \renewcommand{\arraystretch}{1.3}
+        \renewcommand{\arraystretch}{1.25}
         \begin{tabular}{lccc}
           \toprule
-          \textbf{System} & $1/\mu$ & $\rho$ & \textbf{Queue} \\
+          \textbf{System} & $1/\mu$ & $\rho$ & \textbf{Queue ($L_q$)} \\
           \midrule
-          Manual Register & 20 s & \textcolor{DangerRed}{\textbf{11.0}} & $\infty$ \\
-          Biometric + Toggle & 6 s & \textcolor{DangerRed}{\textbf{3.3}} & $\infty$ \\
-          RFID Card Tap & 1.5 s & 0.83 & $\sim$4.8 \\
+          Manual Register & 20 s & \textcolor{DangerRed}{\textbf{11.0}} & $\infty$ (Collapse) \\
+          Biometric + Toggle & 6 s & \textcolor{DangerRed}{\textbf{3.3}} & $\infty$ (Collapse) \\
+          RFID Card Tap & 1.5 s & 0.83 & $\sim$4.8 students \\
           \midrule
-          \textbf{Our System} & \textbf{0.5 s} & \textcolor{CodeGreen}{\textbf{0.28}} & \textcolor{CodeGreen}{\textbf{0.4}} \\
+          \textbf{Our System} & \textbf{0.5 s} & \textcolor{CodeGreen}{\textbf{0.28}} & \textcolor{CodeGreen}{\textbf{0.4 students}} \\
           \bottomrule
         \end{tabular}
       \end{block}
@@ -452,10 +523,10 @@
     \begin{column}{0.42\textwidth}
       \begin{block}{Software Latency Scaling}
         \small
-        \renewcommand{\arraystretch}{1.2}
+        \renewcommand{\arraystretch}{1.15}
         \begin{tabular}{rc}
           \toprule
-          \textbf{Students} & \textbf{Match Time} \\
+          \textbf{Students ($N$)} & \textbf{Match Time} \\
           \midrule
           100 & 6--20 ms \\
           500 & 28--100 ms \\
@@ -463,23 +534,24 @@
           2,000 & 110--400 ms \\
           \bottomrule
         \end{tabular}
-        \vspace{0.5em}
+        \vspace{0.3em}
         \small
         \textbf{Target:} $< 200$ ms software processing for $N \leq 1{,}000$.
       \end{block}
     \end{column}
   \end{columns}
-  \vspace{0.5em}
+  \vspace{0.3em}
   \begin{center}
-    \colorbox{CodeGreen!15}{\parbox{0.85\textwidth}{\centering\small
-      \textbf{Result:} At $\rho = 0.28$, average queue length $L_q \approx 0.4$ students — \textbf{effectively zero wait time}.
+    \colorbox{CodeGreen!12}{\parbox{0.88\textwidth}{\centering\small
+      \textbf{Result:} At $\rho = 0.28$, average queue length $L_q \approx 0.4$ students — \textbf{effectively zero gate wait time}.
     }}
   \end{center}
 \end{frame}
 
+% ---------- SLIDE 11: C++ VS PYTHON BENCHMARKS ----------
 \begin{frame}{C++ vs. Python: Quantified Performance Advantage}
   \begin{center}
-    \renewcommand{\arraystretch}{1.3}
+    \renewcommand{\arraystretch}{1.25}
     \begin{tabular}{lccc}
       \toprule
       \textbf{Operation} & \textbf{C++ Engine} & \textbf{Python Equivalent} & \textbf{Speedup} \\
@@ -492,15 +564,15 @@
       \bottomrule
     \end{tabular}
   \end{center}
-  \vspace{0.5em}
+  \vspace{0.2em}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \begin{exampleblock}{\faCheckCircle\ C++ Engine}
-        \small Meets $<$500 ms budget with 300+ ms headroom. Enables sub-second scan-and-go at biometric security level.
+      \begin{exampleblock}{\faCheckCircle\ C++ Engine Advantage}
+        \small Meets $<$500 ms budget with 300+ ms headroom. Enables sub-second scan-and-go with biometric security.
       \end{exampleblock}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \begin{alertblock}{\faTimesCircle\ Python-Only}
+      \begin{alertblock}{\faTimesCircle\ Python-Only Limitation}
         \small Borderline at 500 students. Fails latency budget at scale. Interpreter overhead + GC pauses cause non-deterministic spikes.
       \end{alertblock}
     \end{column}
@@ -511,9 +583,10 @@
 \section{Comparative Analysis \& Research Gaps}
 % ============================================================================
 
+% ---------- SLIDE 12: 12-DIMENSION COMPARISON MATRIX ----------
 \begin{frame}{12-Dimension Competitive Benchmark}
   \small
-  \renewcommand{\arraystretch}{1.15}
+  \renewcommand{\arraystretch}{1.12}
   \begin{tabularx}{\textwidth}{lccccX}
     \toprule
     \textbf{Dimension} & \textbf{Manual} & \textbf{RFID} & \textbf{Biometric} & \textbf{Anti-PB} & \textbf{Proposed System} \\
@@ -532,6 +605,7 @@
   \end{tabularx}
 \end{frame}
 
+% ---------- SLIDE 13: FOUR RESEARCH GAPS ----------
 \begin{frame}{Four Identified Research Gaps}
   \begin{enumerate}
     \item \begin{block}{Gap 1: Software-Only Direction Detection}
@@ -553,9 +627,10 @@
 \section{ISO/IEC Standards Compliance}
 % ============================================================================
 
+% ---------- SLIDE 14: STANDARDS COMPLIANCE ----------
 \begin{frame}{Standards Compliance Architecture}
   \begin{center}
-    \renewcommand{\arraystretch}{1.4}
+    \renewcommand{\arraystretch}{1.3}
     \begin{tabular}{lll}
       \toprule
       \textbf{Standard} & \textbf{Scope} & \textbf{Project Status} \\
@@ -574,10 +649,10 @@
       \bottomrule
     \end{tabular}
   \end{center}
-  \vspace{0.5em}
+  \vspace{0.3em}
   \begin{center}
-    \colorbox{PrimaryBlue!10}{\parbox{0.8\textwidth}{\centering\small
-      \textbf{Key Achievement:} ISO/IEC 24745 compliance is no longer a ``planned pathway'' — it is \textbf{fully implemented} via BioHashing in Engine v2.0, elevating the project from prototype to standards-grade architecture.
+    \colorbox{PrimaryBlue!10}{\parbox{0.85\textwidth}{\centering\small
+      \textbf{Key Achievement:} ISO/IEC 24745 compliance is \textbf{fully implemented} via BioHashing in Engine v2.0, elevating the project to a standards-grade architecture.
     }}
   \end{center}
 \end{frame}
@@ -586,9 +661,10 @@
 \section{Engine Evolution: v1.0 → v2.0}
 % ============================================================================
 
+% ---------- SLIDE 15: V1 VS V2 EVOLUTION ----------
 \begin{frame}{Engine v1.0 $\rightarrow$ v2.0: Security Hardening}
   \begin{center}
-    \renewcommand{\arraystretch}{1.25}
+    \renewcommand{\arraystretch}{1.2}
     \begin{tabular}{lcc}
       \toprule
       \textbf{Dimension} & \textbf{v1.0 (Plaintext)} & \textbf{v2.0 (BioHash)} \\
@@ -612,35 +688,36 @@
 \section{Future Work: Engine v3.0}
 % ============================================================================
 
+% ---------- SLIDE 16: V3.0 FUTURE WORK ----------
 \begin{frame}{Future Work: Engine v3.0 — Novel Cryptographic Protocol}
   \begin{columns}[T]
     \begin{column}{0.52\textwidth}
       \begin{alertblock}{Vision: Our Own Mathematical Encryption}
         \small
-        Engine v3.0 aims to develop a \textbf{novel, original cryptographic transformation protocol} — moving beyond established BioHashing to a custom mathematical framework that could be:
+        Engine v3.0 aims to develop a \textbf{novel, original cryptographic transformation protocol} — moving beyond established BioHashing to a custom mathematical framework:
         \begin{itemize}
-          \item \textbf{Published} as a peer-reviewed cryptographic primitive
-          \item \textbf{Patented} as a hardware-software co-design invention
-          \item \textbf{Benchmarked} against BioHashing, PolyProtect, and Matrix Projection
+          \item \textbf{Publishable} as a peer-reviewed cryptographic primitive
+          \item \textbf{Patentable} as a hardware-software co-design invention
+          \item \textbf{Benchmarkable} against BioHashing \& PolyProtect
         \end{itemize}
       \end{alertblock}
-      \vspace{0.3em}
+      \vspace{0.2em}
       \begin{block}{Research Directions}
         \small
         \begin{itemize}
           \item Custom non-linear transformation functions
-          \item Adaptive projection matrices with biometric-aware key derivation
-          \item Formal cryptographic proofs of irreversibility bounds
-          \item Empirical FAR/FRR benchmarking under ISO/IEC 19795
+          \item Biometric-aware adaptive projection matrices
+          \item Formal cryptographic proofs of irreversibility
+          \item Empirical FAR/FRR benchmarking (ISO/IEC 19795)
         \end{itemize}
       \end{block}
     \end{column}
     \begin{column}{0.45\textwidth}
-      \begin{block}{Modular Architecture Ready}
+      \begin{block}{Pluggable Architecture Ready}
         \small
-        The \texttt{crypto\_placeholder.h} interface was designed for exactly this:
-        \vspace{0.3em}
-        \renewcommand{\arraystretch}{1.3}
+        The \texttt{crypto\_placeholder.h} interface was built for this:
+        \vspace{0.2em}
+        \renewcommand{\arraystretch}{1.2}
         \begin{tabular}{ll}
           \toprule
           \textbf{Scheme ID} & \textbf{Status} \\
@@ -649,17 +726,17 @@
           \texttt{BIOHASHING} & \textcolor{CodeGreen}{Active (v2.0)} \\
           \texttt{MATRIX\_PROJ} & Slot available \\
           \texttt{POLYPROTECT} & Slot available \\
-          \textbf{v3.0 Custom} & \textcolor{AccentGold}{\textbf{Planned}} \\
+          \textbf{v3.0 Custom} & \textcolor{AccentGold}{\textbf{Planned Roadmap}} \\
           \bottomrule
         \end{tabular}
-        \vspace{0.5em}
+        \vspace{0.3em}
 
-        \small Zero-change swap: implement the 3 functions, set the enum, rebuild.
+        \scriptsize Zero-change swap: implement the 3 functions, set the enum, rebuild.
       \end{block}
-      \vspace{0.3em}
-      \begin{exampleblock}{Supervisor Opportunity}
+      \vspace{0.2em}
+      \begin{exampleblock}{Faculty Guidance Opportunity}
         \small
-        \textbf{This is where faculty guidance would be most valuable} — co-developing the mathematical proofs and guiding the formal cryptanalysis.
+        \textbf{Key collaboration area} — co-developing mathematical proofs and formal cryptanalysis.
       \end{exampleblock}
     \end{column}
   \end{columns}
@@ -669,12 +746,14 @@
 \section{Publication \& Patent Strategy}
 % ============================================================================
 
+% ---------- SLIDE 17: ROADMAP ----------
 \begin{frame}{IP Protection \& Academic Publication Roadmap}
   \begin{center}
   \begin{tikzpicture}[
-      node distance=0.5cm,
-      phase/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!10, thick, rounded corners=3pt, minimum width=11cm, minimum height=1cm, font=\small, align=left},
-      arrow/.style={-{Stealth[length=2.5mm]}, thick, PrimaryBlue},
+      scale=0.88, every node/.style={transform shape},
+      node distance=0.32cm,
+      phase/.style={rectangle, draw=PrimaryBlue, fill=PrimaryBlue!8, thick, rounded corners=3pt, minimum width=11.2cm, minimum height=0.65cm, font=\footnotesize, align=left},
+      arrow/.style={-{Stealth[length=2mm]}, thick, PrimaryBlue},
     ]
 
     \node[phase] (p1) {\textbf{Phase 1:} Finalize Engine v2.0 + BioHashing implementation \hfill \textcolor{CodeGreen}{\faCheckCircle\ \textbf{DONE}}};
@@ -689,14 +768,15 @@
     \draw[arrow] (p4) -- (p5);
   \end{tikzpicture}
   \end{center}
-  \vspace{0.3em}
+  \vspace{0.2em}
   \begin{center}
-    \colorbox{DangerRed!10}{\parbox{0.8\textwidth}{\centering\small
-      \faExclamationTriangle\ \textbf{Critical:} Patent must be filed \textit{before} public paper disclosure. Presenting at college exhibitions or publishing code publicly destroys patent novelty in most jurisdictions.
+    \colorbox{DangerRed!10}{\parbox{0.85\textwidth}{\centering\scriptsize
+      \faExclamationTriangle\ \textbf{Critical Notice:} Patent application must be filed \textit{before} public paper disclosure to preserve novelty.
     }}
   \end{center}
 \end{frame}
 
+% ---------- SLIDE 18: TARGET VENUES ----------
 \begin{frame}{Target Publication Venues}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
@@ -708,7 +788,7 @@
           \item \textbf{ACM TECS} — HW-SW co-design, embedded systems
         \end{itemize}
       \end{block}
-      \vspace{0.3em}
+      \vspace{0.2em}
       \begin{block}{Tier 2 — Domain Journals}
         \small
         \begin{itemize}
@@ -727,14 +807,14 @@
           \item \textbf{IEEE AINA} — Networked applications
         \end{itemize}
       \end{block}
-      \vspace{0.3em}
-      \begin{block}{Patent Classification}
+      \vspace{0.2em}
+      \begin{block}{Patent IPC Classification}
         \small
         \begin{tabular}{ll}
-          G07C 9/00 & Access control \\
-          G07C 9/37 & Biometric access \\
-          G06V 40/12 & Fingerprint verif. \\
-          G06F 21/32 & Biometric auth \\
+          \textbf{G07C 9/00} & Access control systems \\
+          \textbf{G07C 9/37} & Biometric access control \\
+          \textbf{G06V 40/12} & Fingerprint recognition \\
+          \textbf{G06F 21/32} & Biometric authentication \\
         \end{tabular}
       \end{block}
     \end{column}
@@ -745,39 +825,37 @@
 \section{Summary \& Request}
 % ============================================================================
 
-\begin{frame}{Summary of Contributions}
+% ---------- SLIDE 19: SUMMARY & COLLABORATION REQUEST ----------
+\begin{frame}{Summary of Contributions \& Next Steps}
   \begin{columns}[T]
     \begin{column}{0.48\textwidth}
-      \begin{block}{Technical Contributions}
+      \begin{block}{Technical Deliverables Ready}
         \small
         \begin{enumerate}
           \item \textbf{Residency-aware parity FSM} — Zero-friction direction detection
           \item \textbf{BioHashing encryption} — ISO/IEC 24745 compliant cancelable biometrics
           \item \textbf{Dual-tier C++/Python} — Sub-200 ms software latency
-          \item \textbf{Dual-tier coarse-to-fine matching} — $O(1)$ hash + Hamming fallback
-          \item \textbf{Leave reconciliation engine} — Automated curfew audit with exclusions
-          \item \textbf{Modular crypto architecture} — Pluggable slots for future algorithms
+          \item \textbf{Dual-tier matching} — $O(1)$ hash + Hamming fallback
+          \item \textbf{Leave reconciliation} — Automated curfew audit
+          \item \textbf{Modular architecture} — Ready for v3.0
         \end{enumerate}
       \end{block}
     \end{column}
     \begin{column}{0.48\textwidth}
-      \begin{exampleblock}{Request to Faculty}
-        \large
-        \begin{center}
-          We seek faculty guidance and co-supervision for:
-        \end{center}
+      \begin{exampleblock}{Collaboration Request to Faculty}
         \small
+        \textbf{We seek faculty mentorship for:}
         \begin{enumerate}
           \item \textbf{Co-developing} the v3.0 novel cryptographic protocol
-          \item \textbf{Co-authoring} the IEEE/Springer research paper
-          \item \textbf{Guiding} the provisional patent application
+          \item \textbf{Co-authoring} the IEEE/Springer paper
+          \item \textbf{Guiding} the provisional patent filing
           \item \textbf{Facilitating} campus deployment pilot
-          \item \textbf{Formal cryptanalysis} of the v3.0 mathematical proofs
+          \item \textbf{Formal cryptanalysis} of security bounds
         \end{enumerate}
-        \vspace{0.3em}
+        \vspace{0.2em}
         \begin{center}
-          \colorbox{AccentGold!30}{\parbox{0.85\textwidth}{\centering
-            \textbf{This project has both publication and patent potential.}
+          \colorbox{AccentGold!25}{\parbox{0.88\textwidth}{\centering\scriptsize\bfseries
+            High potential for joint publication and patent filing.
           }}
         \end{center}
       \end{exampleblock}
@@ -785,19 +863,19 @@
   \end{columns}
 \end{frame}
 
-% ---------- CLOSING SLIDE ----------
+% ---------- SLIDE 20: CLOSING SLIDE ----------
 \begin{frame}[plain]
   \begin{center}
     \vspace{2cm}
     {\Huge\bfseries\textcolor{PrimaryBlue}{Thank You}}
 
-    \vspace{1cm}
+    \vspace{0.8cm}
     {\Large Questions \& Discussion}
 
-    \vspace{1.5cm}
+    \vspace{1.2cm}
     {\small
-      \faIcon{github}\ \texttt{CodeNebula-Dev/FingerPrint-Scanner-IN-Out-System}\\[0.5em]
-      \faIcon{code}\ C++17 Engine + Python 3.x Application\\[0.5em]
+      \faIcon{github}\ \texttt{CodeNebula-Dev/FingerPrint-Scanner-IN-Out-System}\\[0.4em]
+      \faIcon{code}\ C++17 Engine + Python 3.x Application\\[0.4em]
       \faIcon{shield-alt}\ ISO/IEC 24745 Compliant BioHashing Architecture
     }
   \end{center}
