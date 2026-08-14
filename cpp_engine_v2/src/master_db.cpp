@@ -1,6 +1,7 @@
 #include "engine.h"
 #include "serializer.h"
 #include "indexer.h"
+#include "crypto_placeholder.h"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -27,6 +28,12 @@ bool engine_init(const char* project_root_path) {
     }
 
     indexer_init();
+
+    // Initialize BioHash encryption key subsystem
+    if (!crypto_init_key(g_root_path)) {
+        std::cerr << "Engine Init Warning: BioHash key initialization failed." << std::endl;
+        // Non-fatal: engine can still operate, but enrollment/matching will fail gracefully
+    }
 
     // Populate RAM indexer from existing student files on disk
     std::string student_dir = g_root_path + "/Student_data";
