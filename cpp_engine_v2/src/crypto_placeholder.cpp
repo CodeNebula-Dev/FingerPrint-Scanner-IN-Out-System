@@ -109,10 +109,16 @@ static bool compute_biohash(const uint8_t* raw_input, size_t input_len, uint64_t
     dot_products.resize(proj_dim);
     std::memset(binary_code, 0, binary_byte_len);
 
-    // Convert raw bytes to double feature vector (normalized to [0, 1])
+    // Zero-mean center the feature vector (standard BioHashing requirement for uncorrelated Gaussian projection)
+    double mean = 0.0;
+    for (int i = 0; i < input_dim; i++) {
+        mean += static_cast<double>(raw_input[i]);
+    }
+    mean /= (input_dim > 0 ? static_cast<double>(input_dim) : 1.0);
+
     std::vector<double> features(input_dim);
     for (int i = 0; i < input_dim; i++) {
-        features[i] = static_cast<double>(raw_input[i]) / 255.0;
+        features[i] = (static_cast<double>(raw_input[i]) - mean) / 255.0;
     }
 
     // For each projection dimension, compute dot product with random vector

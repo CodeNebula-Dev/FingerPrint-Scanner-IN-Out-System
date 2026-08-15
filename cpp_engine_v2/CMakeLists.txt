@@ -25,6 +25,9 @@ add_library(gate_engine_v2 SHARED ${ENGINE_SOURCES})
 # Compile standalone CLI testing executable
 add_executable(gate_cli_v2 ${ENGINE_SOURCES} src/main.cpp)
 
+# Compile pipeline validation test executable
+add_executable(test_pipeline ${ENGINE_SOURCES} src/test_pipeline.cpp)
+
 # Target properties
 set_target_properties(gate_engine_v2 PROPERTIES
     CXX_VISIBILITY_PRESET hidden
