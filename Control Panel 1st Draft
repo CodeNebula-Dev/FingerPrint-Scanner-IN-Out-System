@@ -1,0 +1,835 @@
+"""
+control_panel.py
+Full Tkinter GUI Control Panel for the Fingerprint Attendance System.
+Panels: Log | Out | Systems Control | Requests | Home
+"""
+
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog, simpledialog
+from datetime import date, timedelta
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from db.database import (
+    init_all, seed_demo,
+    get_logs, get_currently_out, export_logs_to_csv,
+    get_all_students, search_students, add_student, remove_student, remove_batch,
+    get_pending_requests, approve_request, get_home_students,
+    verify_admin, change_password, submit_home_request,
+    get_student_by_roll
+)
+
+# ─── Theme ─────────────────────────────────────────────────────────────────────
+
+BG          = "#1a1d2e"
+PANEL_BG    = "#242740"
+ACCENT      = "#4f8ef7"
+ACCENT2     = "#7c5cbf"
+SUCCESS     = "#3ecf8e"
+DANGER      = "#e05c5c"
+WARNING     = "#f5a623"
+TEXT        = "#e8eaf6"
+SUBTEXT     = "#8892b0"
+BORDER      = "#3a3f5c"
+ROW_EVEN    = "#2a2f47"
+ROW_ODD     = "#242740"
+SEL_BG      = "#3a5596"
+
+FONT_H      = ("Segoe UI", 13, "bold")
+FONT_M      = ("Segoe UI", 10)
+FONT_S      = ("Segoe UI", 9)
+FONT_MONO   = ("Consolas", 10)
+
+
+# ─── Reusable Widgets ──────────────────────────────────────────────────────────
+
+def styled_btn(parent, text, cmd, color=ACCENT, width=12, pady=4):
+    b = tk.Button(parent, text=text, command=cmd,
+                  bg=color, fg=TEXT, font=FONT_M,
+                  relief="flat", cursor="hand2",
+                  padx=10, pady=pady, width=width,
+                  activebackground=BORDER, activeforeground=TEXT,
+                  bd=0)
+    return b
+
+
+def entry_field(parent, placeholder="", width=20, show=""):
+    frame = tk.Frame(parent, bg=PANEL_BG, bd=0)
+    var = tk.StringVar()
+    e = tk.Entry(frame, textvariable=var, width=width, show=show,
+                 bg=BORDER, fg=TEXT, insertbackground=TEXT,
+                 relief="flat", font=FONT_M,
+                 bd=0)
+    e.pack(ipady=5, padx=2, pady=2)
+    if placeholder:
+        e.insert(0, placeholder)
+        e.config(fg=SUBTEXT)
+        def on_focus_in(evt, e=e, ph=placeholder):
+            if e.get() == ph: e.delete(0, "end"); e.config(fg=TEXT)
+        def on_focus_out(evt, e=e, ph=placeholder):
+            if not e.get(): e.insert(0, ph); e.config(fg=SUBTEXT)
+        e.bind("<FocusIn>",  on_focus_in)
+        e.bind("<FocusOut>", on_focus_out)
+    return frame, var, e
+
+
+def section_label(parent, text):
+    tk.Label(parent, text=text, bg=PANEL_BG, fg=SUBTEXT,
+             font=FONT_S).pack(anchor="w", padx=4)
+
+
+def make_tree(parent, columns, show_scroll=True):
+    style = ttk.Style()
+    style.theme_use("clam")
+    style.configure("Dark.Treeview",
+        background=ROW_EVEN, foreground=TEXT, fieldbackground=ROW_EVEN,
+        borderwidth=0, font=FONT_M, rowheight=28)
+    style.configure("Dark.Treeview.Heading",
+        background=ACCENT2, foreground=TEXT, font=("Segoe UI", 10, "bold"),
+        relief="flat")
+    style.map("Dark.Treeview",
+        background=[("selected", SEL_BG)],
+        foreground=[("selected", TEXT)])
+
+    frame = tk.Frame(parent, bg=BG)
+    tree = ttk.Treeview(frame, columns=columns, show="headings",
+                        style="Dark.Treeview", selectmode="browse")
+    for col in columns:
+        w = 140 if col not in ("Name",) else 160
+        if col in ("Entry Time","Exit Time"): w = 110
+        if col in ("Roll No.",): w = 80
+        if col in ("Year","Role"): w = 80
+        tree.heading(col, text=col)
+        tree.column(col, width=w, minwidth=60, anchor="center")
+    tree.tag_configure("odd",  background=ROW_ODD)
+    tree.tag_configure("even", background=ROW_EVEN)
+
+    vsb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=vsb.set)
+    tree.pack(side="left", fill="both", expand=True)
+    if show_scroll:
+        vsb.pack(side="right", fill="y")
+    frame.pack(fill="both", expand=True)
+    return tree
+
+
+def populate_tree(tree, rows, col_keys):
+    tree.delete(*tree.get_children())
+    for i, row in enumerate(rows):
+        values = [row.get(k, "") or "" for k in col_keys]
+        tag = "even" if i % 2 == 0 else "odd"
+        tree.insert("", "end", values=values, tags=(tag,))
+
+
+# ─── Main App Window ────────────────────────────────────────────────────────────
+
+class FingerprintApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Fingerprint Attendance Control Panel")
+        self.configure(bg=BG)
+        self.geometry("1200x750")
+        self.minsize(1000, 650)
+        self._build_ui()
+        self.show_panel("Log")
+
+    def _build_ui(self):
+        # ── Top bar ──
+        top = tk.Frame(self, bg=PANEL_BG, height=54)
+        top.pack(fill="x")
+        top.pack_propagate(False)
+
+        tk.Label(top, text="🔒 Institute Attendance System",
+                 bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(side="left", padx=18, pady=12)
+
+        tk.Label(top, text=f"📅 {date.today().strftime('%d %b %Y')}",
+                 bg=PANEL_BG, fg=SUBTEXT, font=FONT_M).pack(side="right", padx=18, pady=12)
+
+        # ── Nav tabs ──
+        nav = tk.Frame(self, bg=BG, pady=0)
+        nav.pack(fill="x")
+        self._nav_buttons = {}
+        panels = ["Log", "Out", "Systems Control", "Requests", "Home"]
+        for p in panels:
+            b = tk.Button(nav, text=p, bg=BG, fg=SUBTEXT,
+                          font=("Segoe UI", 10, "bold"),
+                          relief="flat", cursor="hand2",
+                          padx=20, pady=10, bd=0,
+                          activebackground=ACCENT, activeforeground=TEXT,
+                          command=lambda x=p: self.show_panel(x))
+            b.pack(side="left")
+            self._nav_buttons[p] = b
+
+        sep = tk.Frame(self, bg=BORDER, height=2)
+        sep.pack(fill="x")
+
+        # ── Content area ──
+        self._content = tk.Frame(self, bg=BG)
+        self._content.pack(fill="both", expand=True)
+
+        # Build each panel (hidden initially)
+        self._panels = {
+            "Log":             LogPanel(self._content, self),
+            "Out":             OutPanel(self._content, self),
+            "Systems Control": SystemsControlPanel(self._content, self),
+            "Requests":        RequestsPanel(self._content, self),
+            "Home":            HomePanel(self._content, self),
+        }
+        for panel in self._panels.values():
+            panel.place(relwidth=1, relheight=1)
+
+    def show_panel(self, name):
+        for k, btn in self._nav_buttons.items():
+            if k == name:
+                btn.config(bg=ACCENT, fg=TEXT)
+            else:
+                btn.config(bg=BG, fg=SUBTEXT)
+        panel = self._panels.get(name)
+        if panel:
+            panel.lift()
+            panel.refresh()
+
+
+# ─── Log Panel ─────────────────────────────────────────────────────────────────
+
+class LogPanel(tk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent, bg=BG)
+        self.app = app
+        self._filters = {}
+        self._build()
+
+    def _build(self):
+        # ── Toolbar ──
+        bar = tk.Frame(self, bg=PANEL_BG, pady=8)
+        bar.pack(fill="x", padx=0)
+
+        # Search
+        sf, self._search_var, se = entry_field(bar, placeholder="🔍  Search name / roll no.", width=28)
+        sf.pack(side="left", padx=(12,6))
+        self._search_var.trace_add("write", lambda *_: self._load())
+
+        # Period picker
+        styled_btn(bar, "📅 Period", self._pick_period, color=ACCENT2, width=10).pack(side="left", padx=4)
+        self._period_label = tk.Label(bar, text="All dates", bg=PANEL_BG, fg=SUBTEXT, font=FONT_S)
+        self._period_label.pack(side="left", padx=4)
+
+        # Today shortcut
+        styled_btn(bar, "Today", self._set_today, color=ACCENT, width=7).pack(side="left", padx=4)
+
+        # Export
+        styled_btn(bar, "⬇ Export", self._export, color=SUCCESS, width=9).pack(side="right", padx=(4,12))
+
+        # Filter
+        styled_btn(bar, "⚙ Filter", self._open_filter, color=ACCENT2, width=8).pack(side="right", padx=4)
+
+        sep2 = tk.Frame(self, bg=BORDER, height=2)
+        sep2.pack(fill="x")
+
+        # ── Table ──
+        cols = ["Name","Roll No.","Year","Reason","Program","Role","Entry Time","Exit Time","Date"]
+        self._keys = ["name","roll_no","year","reason","program","role","entry_time","exit_time","log_date"]
+        self._tree = make_tree(self, cols)
+
+        # Status bar
+        self._status = tk.Label(self, text="", bg=BG, fg=SUBTEXT, font=FONT_S)
+        self._status.pack(anchor="w", padx=12, pady=4)
+
+        self._start_date = None
+        self._end_date   = None
+
+    def _load(self):
+        q = self._search_var.get()
+        if q in ("", "🔍  Search name / roll no."):
+            q = None
+        rows = get_logs(
+            start_date=self._start_date,
+            end_date=self._end_date,
+            year=self._filters.get("year"),
+            program=self._filters.get("program"),
+            role=self._filters.get("role"),
+            reason=self._filters.get("reason"),
+            search=q
+        )
+        populate_tree(self._tree, rows, self._keys)
+        self._status.config(text=f"  {len(rows)} record(s)")
+
+    def refresh(self):
+        self._load()
+
+    def _set_today(self):
+        today = date.today().isoformat()
+        self._start_date = today
+        self._end_date   = today
+        self._period_label.config(text=f"Today  ({today})")
+        self._load()
+
+    def _pick_period(self):
+        win = tk.Toplevel(self, bg=PANEL_BG)
+        win.title("Select Period")
+        win.geometry("340x200")
+        win.resizable(False, False)
+        win.grab_set()
+
+        tk.Label(win, text="Start Date (YYYY-MM-DD)", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(pady=(16,2))
+        sf, sv, se = entry_field(win, width=20)
+        sf.pack()
+        sv.set(self._start_date or "")
+
+        tk.Label(win, text="End Date (YYYY-MM-DD)", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(pady=(8,2))
+        ef, ev, ee = entry_field(win, width=20)
+        ef.pack()
+        ev.set(self._end_date or "")
+
+        def apply():
+            self._start_date = sv.get().strip() or None
+            self._end_date   = ev.get().strip() or None
+            lbl = f"{self._start_date or '∞'} → {self._end_date or '∞'}"
+            self._period_label.config(text=lbl)
+            win.destroy()
+            self._load()
+
+        styled_btn(win, "Apply", apply, width=10).pack(pady=12)
+
+    def _open_filter(self):
+        win = tk.Toplevel(self, bg=PANEL_BG)
+        win.title("Filter")
+        win.geometry("260x280")
+        win.resizable(False, False)
+        win.grab_set()
+
+        fields = [
+            ("Year",    ["", "1st Yr","2nd Yr","3rd Yr"]),
+            ("Program", ["", "BSc","MSc","PhD"]),
+            ("Role",    ["", "Student","Faculty","Staff"]),
+            ("Reason",  ["", "Medical","Market","Exam","Home"]),
+        ]
+        vars_ = {}
+        for label, opts in fields:
+            tk.Label(win, text=label, bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=16, pady=(8,0))
+            v = tk.StringVar(value=self._filters.get(label.lower(), ""))
+            cb = ttk.Combobox(win, textvariable=v, values=opts, state="readonly", width=22)
+            cb.pack(padx=16)
+            vars_[label.lower()] = v
+
+        def apply():
+            self._filters = {k: v.get() or None for k, v in vars_.items()}
+            win.destroy()
+            self._load()
+
+        styled_btn(win, "Apply", apply, width=10).pack(pady=14)
+
+    def _export(self):
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV","*.csv")],
+            initialfile=f"attendance_{date.today()}.csv")
+        if path:
+            export_logs_to_csv(path,
+                start_date=self._start_date, end_date=self._end_date)
+            messagebox.showinfo("Exported", f"Saved to:\n{path}")
+
+
+# ─── Out Panel ─────────────────────────────────────────────────────────────────
+
+class OutPanel(tk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent, bg=BG)
+        self.app = app
+        self._reason_filter = None
+        self._build()
+
+    def _build(self):
+        bar = tk.Frame(self, bg=PANEL_BG, pady=8)
+        bar.pack(fill="x")
+        tk.Label(bar, text="Students Currently Outside", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(side="left", padx=14)
+
+        reasons = ["All", "Market", "Exam", "Medical", "Home"]
+        self._reason_var = tk.StringVar(value="All")
+        tk.Label(bar, text="Reason:", bg=PANEL_BG, fg=SUBTEXT, font=FONT_M).pack(side="left", padx=(20,4))
+        cb = ttk.Combobox(bar, textvariable=self._reason_var, values=reasons,
+                          state="readonly", width=12, font=FONT_M)
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda _: self._load())
+
+        styled_btn(bar, "↻ Refresh", self._load, width=9).pack(side="right", padx=12)
+
+        tk.Frame(self, bg=BORDER, height=2).pack(fill="x")
+
+        cols = ["Name","Roll No.","Program","Batch","Year","Contact Info","Role","Reason","Exit Time"]
+        self._keys = ["name","roll_no","program","year","year","contact_info","role","reason","exit_time"]
+        self._tree = make_tree(self, cols)
+
+        self._count = tk.Label(self, text="", bg=BG, fg=SUBTEXT, font=FONT_S)
+        self._count.pack(anchor="w", padx=12, pady=4)
+
+    def _load(self):
+        rows = get_currently_out()
+        r = self._reason_var.get()
+        if r != "All":
+            rows = [x for x in rows if x.get("reason","").lower() == r.lower()]
+        populate_tree(self._tree, rows, self._keys)
+        self._count.config(text=f"  {len(rows)} student(s) outside")
+
+    def refresh(self):
+        self._load()
+
+
+# ─── Requests Panel ────────────────────────────────────────────────────────────
+
+class RequestsPanel(tk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent, bg=BG)
+        self.app = app
+        self._rows = []
+        self._build()
+
+    def _build(self):
+        bar = tk.Frame(self, bg=PANEL_BG, pady=8)
+        bar.pack(fill="x")
+        tk.Label(bar, text="Pending Home Requests", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(side="left", padx=14)
+        styled_btn(bar, "↻ Refresh", self.refresh, width=9).pack(side="right", padx=12)
+        tk.Frame(self, bg=BORDER, height=2).pack(fill="x")
+
+        self._list_frame = tk.Frame(self, bg=BG)
+        self._list_frame.pack(fill="both", expand=True, padx=16, pady=10)
+
+    def refresh(self):
+        for w in self._list_frame.winfo_children():
+            w.destroy()
+        self._rows = get_pending_requests()
+        if not self._rows:
+            tk.Label(self._list_frame, text="✅  No pending requests",
+                     bg=BG, fg=SUBTEXT, font=FONT_M).pack(pady=30)
+            return
+        for req in self._rows:
+            self._make_request_card(req)
+
+    def _make_request_card(self, req):
+        card = tk.Frame(self._list_frame, bg=PANEL_BG, pady=10, padx=12)
+        card.pack(fill="x", pady=5)
+
+        info = (f"  {req['name']}  (Roll: {req['roll_no']})  —  "
+                f"{req['program']}  |  Departure: {req.get('departure_date','')}  "
+                f"  Return: {req.get('expected_return','')}")
+        tk.Label(card, text=info, bg=PANEL_BG, fg=TEXT, font=FONT_M,
+                 anchor="w").pack(side="left", fill="x", expand=True)
+
+        rid = req["id"]
+        styled_btn(card, "✓ Approve", lambda r=rid: self._decide(r, True),
+                   color=SUCCESS, width=10).pack(side="right", padx=(4,0))
+        styled_btn(card, "✕ Reject",  lambda r=rid: self._decide(r, False),
+                   color=DANGER, width=10).pack(side="right", padx=(4,4))
+
+    def _decide(self, record_id, approve):
+        approve_request(record_id, approve)
+        self.refresh()
+
+
+# ─── Home Panel ────────────────────────────────────────────────────────────────
+
+class HomePanel(tk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent, bg=BG)
+        self.app = app
+        self._prog_filter = None
+        self._build()
+
+    def _build(self):
+        bar = tk.Frame(self, bg=PANEL_BG, pady=8)
+        bar.pack(fill="x")
+        tk.Label(bar, text="Students on Home Leave", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(side="left", padx=14)
+
+        progs = ["All", "BSc", "MSc", "PhD"]
+        self._prog_var = tk.StringVar(value="All")
+        tk.Label(bar, text="Program:", bg=PANEL_BG, fg=SUBTEXT, font=FONT_M).pack(side="left", padx=(20,4))
+        cb = ttk.Combobox(bar, textvariable=self._prog_var, values=progs,
+                          state="readonly", width=10, font=FONT_M)
+        cb.pack(side="left")
+        cb.bind("<<ComboboxSelected>>", lambda _: self._load())
+
+        styled_btn(bar, "↻ Refresh", self._load, width=9).pack(side="right", padx=12)
+        tk.Frame(self, bg=BORDER, height=2).pack(fill="x")
+
+        cols = ["Name","Roll No.","Program","Batch","Year","Contact Info","Role","Departure","Expected Return"]
+        self._keys = ["name","roll_no","program","batch","year","contact_info","role","departure_date","expected_return"]
+        self._tree = make_tree(self, cols)
+
+        self._count = tk.Label(self, text="", bg=BG, fg=SUBTEXT, font=FONT_S)
+        self._count.pack(anchor="w", padx=12, pady=4)
+
+    def _load(self):
+        p = self._prog_var.get()
+        rows = get_home_students(program=None if p == "All" else p)
+        populate_tree(self._tree, rows, self._keys)
+        self._count.config(text=f"  {len(rows)} student(s) on home leave")
+
+    def refresh(self):
+        self._load()
+
+
+# ─── Systems Control Panel ─────────────────────────────────────────────────────
+
+class SystemsControlPanel(tk.Frame):
+    def __init__(self, parent, app):
+        super().__init__(parent, bg=BG)
+        self.app = app
+        self._authenticated = False
+        self._build_lock_screen()
+
+    def _build_lock_screen(self):
+        self._lock_frame = tk.Frame(self, bg=BG)
+        self._lock_frame.place(relwidth=1, relheight=1)
+
+        inner = tk.Frame(self._lock_frame, bg=PANEL_BG, padx=40, pady=40)
+        inner.place(relx=0.5, rely=0.45, anchor="center")
+
+        tk.Label(inner, text="🔐  Systems Control", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(pady=(0,4))
+        tk.Label(inner, text="Password-protected administrative panel",
+                 bg=PANEL_BG, fg=SUBTEXT, font=FONT_S).pack(pady=(0,20))
+
+        tk.Label(inner, text="Enter Password:", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w")
+        pf, self._pwd_var, pe = entry_field(inner, width=28, show="●")
+        pf.pack(pady=6)
+        pe.bind("<Return>", lambda _: self._authenticate())
+
+        self._err_lbl = tk.Label(inner, text="", bg=PANEL_BG, fg=DANGER, font=FONT_S)
+        self._err_lbl.pack()
+
+        styled_btn(inner, "Unlock", self._authenticate, color=ACCENT, width=12).pack(pady=10)
+        tk.Label(inner, text="Default password: admin123",
+                 bg=PANEL_BG, fg=SUBTEXT, font=FONT_S).pack(pady=(8,0))
+
+    def _authenticate(self):
+        pwd = self._pwd_var.get()
+        if verify_admin(pwd):
+            self._authenticated = True
+            self._lock_frame.place_forget()
+            self._build_admin_panel()
+        else:
+            self._err_lbl.config(text="⚠  Incorrect password")
+
+    def _build_admin_panel(self):
+        self._admin_frame = tk.Frame(self, bg=BG)
+        self._admin_frame.place(relwidth=1, relheight=1)
+
+        # Nav sub-tabs
+        subbar = tk.Frame(self._admin_frame, bg=PANEL_BG, pady=8)
+        subbar.pack(fill="x")
+        tk.Label(subbar, text="⚙  Systems Control  —  Authenticated",
+                 bg=PANEL_BG, fg=SUCCESS, font=FONT_H).pack(side="left", padx=14)
+        styled_btn(subbar, "🔒 Lock", self._lock, color=DANGER, width=8).pack(side="right", padx=12)
+
+        tk.Frame(self._admin_frame, bg=BORDER, height=2).pack(fill="x")
+
+        # Action buttons
+        center = tk.Frame(self._admin_frame, bg=BG)
+        center.pack(fill="both", expand=True)
+
+        btn_row = tk.Frame(center, bg=BG)
+        btn_row.place(relx=0.5, rely=0.35, anchor="center")
+
+        styled_btn(btn_row, "✏  Edit Database", self._show_edit_db,
+                   color=ACCENT, width=20, pady=16).pack(side="left", padx=16)
+        styled_btn(btn_row, "👁  View Database", self._show_view_db,
+                   color=ACCENT2, width=20, pady=16).pack(side="left", padx=16)
+        styled_btn(btn_row, "🔑  Change Password", self._change_password,
+                   color=WARNING, width=20, pady=16).pack(side="left", padx=16)
+
+        self._db_frame = tk.Frame(center, bg=BG)
+        self._db_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+    def _lock(self):
+        self._authenticated = False
+        if hasattr(self, "_admin_frame"):
+            self._admin_frame.place_forget()
+        self._pwd_var.set("")
+        self._err_lbl.config(text="")
+        self._lock_frame.place(relwidth=1, relheight=1)
+
+    def refresh(self):
+        pass  # Lock screen stays until password
+
+    def _show_edit_db(self):
+        EditDatabaseWindow(self)
+
+    def _show_view_db(self):
+        ViewDatabaseWindow(self)
+
+    def _change_password(self):
+        win = tk.Toplevel(self, bg=PANEL_BG)
+        win.title("Change Password")
+        win.geometry("320x240")
+        win.grab_set()
+
+        for lbl, show, attr in [
+            ("Current Password", "●", "old"),
+            ("New Password",     "●", "new"),
+            ("Confirm New",      "●", "cnf"),
+        ]:
+            tk.Label(win, text=lbl, bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=20, pady=(10,0))
+            f, v, _ = entry_field(win, width=26, show=show)
+            f.pack()
+            setattr(win, f"_{attr}_var", v)
+
+        err = tk.Label(win, text="", bg=PANEL_BG, fg=DANGER, font=FONT_S)
+        err.pack()
+
+        def submit():
+            old = win._old_var.get()
+            new = win._new_var.get()
+            cnf = win._cnf_var.get()
+            if new != cnf:
+                err.config(text="New passwords don't match"); return
+            ok, msg = change_password(old, new)
+            if ok:
+                messagebox.showinfo("Success", msg, parent=win)
+                win.destroy()
+            else:
+                err.config(text=msg)
+
+        styled_btn(win, "Change", submit, width=12).pack(pady=10)
+
+
+# ─── Edit Database Window ──────────────────────────────────────────────────────
+
+class EditDatabaseWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent, bg=PANEL_BG)
+        self.title("Edit Database")
+        self.geometry("460x340")
+        self.grab_set()
+
+        tk.Label(self, text="Edit Student Database", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(pady=20)
+
+        btn_frame = tk.Frame(self, bg=PANEL_BG)
+        btn_frame.pack(pady=10)
+        styled_btn(btn_frame, "➕  Add Student",    self._add,    color=SUCCESS, width=18, pady=14).pack(pady=8)
+        styled_btn(btn_frame, "➖  Remove Student", self._remove, color=DANGER,  width=18, pady=14).pack(pady=8)
+        styled_btn(btn_frame, "🗑  Remove Batch",   self._remove_batch, color=WARNING, width=18, pady=14).pack(pady=8)
+
+    def _add(self):
+        AddStudentWindow(self)
+
+    def _remove(self):
+        win = tk.Toplevel(self, bg=PANEL_BG)
+        win.title("Remove Student")
+        win.geometry("320x200")
+        win.grab_set()
+
+        tk.Label(win, text="Name", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=20, pady=(14,0))
+        nf, nv, _ = entry_field(win, width=26); nf.pack()
+        tk.Label(win, text="Roll Number", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=20, pady=(8,0))
+        rf, rv, _ = entry_field(win, width=26); rf.pack()
+
+        def submit():
+            roll = rv.get().strip()
+            if not roll:
+                messagebox.showwarning("Input", "Roll number required", parent=win); return
+            if messagebox.askyesno("Confirm", f"Remove student {nv.get()} ({roll})?", parent=win):
+                remove_student(roll_no=roll)
+                messagebox.showinfo("Done", "Student removed.", parent=win)
+                win.destroy()
+
+        styled_btn(win, "Remove", submit, color=DANGER, width=12).pack(pady=12)
+
+    def _remove_batch(self):
+        win = tk.Toplevel(self, bg=PANEL_BG)
+        win.title("Remove Batch")
+        win.geometry("320x180")
+        win.grab_set()
+
+        tk.Label(win, text="Program", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=20, pady=(14,0))
+        pv = tk.StringVar()
+        ttk.Combobox(win, textvariable=pv, values=["BSc","MSc","PhD"],
+                     state="readonly", width=22).pack(padx=20)
+        tk.Label(win, text="Batch (e.g. 2022-2025)", bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", padx=20, pady=(8,0))
+        bf, bv, _ = entry_field(win, width=26); bf.pack()
+
+        def submit():
+            p, b = pv.get().strip(), bv.get().strip()
+            if not p or not b:
+                messagebox.showwarning("Input", "Both fields required", parent=win); return
+            if messagebox.askyesno("Confirm", f"Remove entire batch {b} of {p}?", parent=win):
+                remove_batch(p, b)
+                messagebox.showinfo("Done", f"Batch {b} removed.", parent=win)
+                win.destroy()
+
+        styled_btn(win, "Remove Batch", submit, color=DANGER, width=14).pack(pady=12)
+
+
+class AddStudentWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent, bg=PANEL_BG)
+        self.title("Add Student")
+        self.geometry("520x540")
+        self.grab_set()
+
+        tk.Label(self, text="Add New Student", bg=PANEL_BG, fg=TEXT, font=FONT_H).pack(pady=14)
+
+        form = tk.Frame(self, bg=PANEL_BG)
+        form.pack(fill="both", expand=True, padx=30)
+
+        fields = [
+            ("Name",         "Full name",           "name",    False),
+            ("Roll Number",  "e.g. 4530",           "roll",    False),
+            ("Program",      None,                  "prog",    True,  ["BSc","MSc","PhD"]),
+            ("Batch",        "e.g. 2024-2027",      "batch",   False),
+            ("Year",         None,                  "year",    True,  ["1st Yr","2nd Yr","3rd Yr"]),
+            ("Contact Info", "Phone / Email",       "contact", False),
+            ("Role",         None,                  "role",    True,  ["Student","Faculty","Staff"]),
+        ]
+        self._vars = {}
+        for row in fields:
+            label, ph, key, is_combo = row[0], row[1], row[2], row[3]
+            opts = row[4] if len(row) > 4 else None
+            tk.Label(form, text=label, bg=PANEL_BG, fg=TEXT, font=FONT_M).pack(anchor="w", pady=(6,0))
+            v = tk.StringVar()
+            if is_combo:
+                cb = ttk.Combobox(form, textvariable=v, values=opts, state="readonly", width=36)
+                cb.pack(fill="x")
+                if opts: cb.set(opts[0])
+            else:
+                f, v2, _ = entry_field(form, placeholder=ph or "", width=38)
+                f.pack(fill="x")
+                v = v2
+            self._vars[key] = v
+
+        self._err = tk.Label(self, text="", bg=PANEL_BG, fg=DANGER, font=FONT_S)
+        self._err.pack()
+
+        styled_btn(self, "Add Student", self._submit, color=SUCCESS, width=16).pack(pady=12)
+
+    def _submit(self):
+        v = {k: var.get().strip() for k, var in self._vars.items()}
+        required = ["name","roll","prog","batch","year"]
+        for k in required:
+            val = v[k]
+            if not val or val.startswith("🔍"):
+                self._err.config(text=f"Field '{k}' is required"); return
+        try:
+            add_student(v["roll"], v["name"], v["prog"], v["batch"],
+                        v["year"], v["contact"], v["role"] or "Student")
+            messagebox.showinfo("Success", f"Student {v['name']} added.", parent=self)
+            self.destroy()
+        except Exception as e:
+            self._err.config(text=f"Error: {e}")
+
+
+# ─── View Database Window ──────────────────────────────────────────────────────
+
+class ViewDatabaseWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent, bg=PANEL_BG)
+        self.title("View Database")
+        self.geometry("1000x580")
+        self.grab_set()
+
+        bar = tk.Frame(self, bg=PANEL_BG, pady=8)
+        bar.pack(fill="x")
+        self._view_var = tk.StringVar(value="Students")
+        for v in ["Students", "Log Files"]:
+            tk.Radiobutton(bar, text=v, variable=self._view_var, value=v,
+                           bg=PANEL_BG, fg=TEXT, selectcolor=ACCENT,
+                           activebackground=PANEL_BG, font=FONT_M,
+                           command=self._switch).pack(side="left", padx=14)
+
+        # Students view
+        self._stud_frame = tk.Frame(self, bg=BG)
+        sbar = tk.Frame(self._stud_frame, bg=PANEL_BG, pady=6)
+        sbar.pack(fill="x")
+        sf, self._s_search, se = entry_field(sbar, placeholder="🔍 Search", width=24)
+        sf.pack(side="left", padx=10)
+        self._s_search.trace_add("write", lambda *_: self._load_students())
+        self._prog_var = tk.StringVar(value="All")
+        cb = ttk.Combobox(sbar, textvariable=self._prog_var, values=["All","BSc","MSc","PhD"],
+                          state="readonly", width=10)
+        cb.pack(side="left", padx=6)
+        cb.bind("<<ComboboxSelected>>", lambda _: self._load_students())
+        styled_btn(sbar, "Export CSV", self._export_students, color=SUCCESS, width=10).pack(side="right", padx=10)
+
+        scols = ["Name","Roll No.","Program","Batch","Year","Contact Info","Role"]
+        self._s_keys = ["name","roll_no","program","batch","year","contact_info","role"]
+        self._s_tree = make_tree(self._stud_frame, scols)
+
+        # Log files view
+        self._log_frame = tk.Frame(self, bg=BG)
+        lbar = tk.Frame(self._log_frame, bg=PANEL_BG, pady=6)
+        lbar.pack(fill="x")
+        styled_btn(lbar, "Export",            self._export_logs, color=SUCCESS, width=10).pack(side="left", padx=10)
+        styled_btn(lbar, "Export & Delete",   self._export_delete, color=DANGER, width=14).pack(side="left", padx=4)
+        lcols = ["Name","Roll No.","Program","Year","Reason","Entry Time","Exit Time","Date"]
+        self._l_keys = ["name","roll_no","program","year","reason","entry_time","exit_time","log_date"]
+        self._l_tree = make_tree(self._log_frame, lcols)
+
+        self._switch()
+
+    def _switch(self):
+        v = self._view_var.get()
+        self._stud_frame.pack_forget()
+        self._log_frame.pack_forget()
+        if v == "Students":
+            self._stud_frame.pack(fill="both", expand=True)
+            self._load_students()
+        else:
+            self._log_frame.pack(fill="both", expand=True)
+            self._load_logs()
+
+    def _load_students(self):
+        q = self._s_search.get()
+        if q in ("", "🔍 Search"): q = None
+        p = self._prog_var.get()
+        if q:
+            rows = search_students(q)
+        else:
+            rows = get_all_students(program=None if p == "All" else p)
+        populate_tree(self._s_tree, rows, self._s_keys)
+
+    def _load_logs(self):
+        rows = get_logs()
+        populate_tree(self._l_tree, rows, self._l_keys)
+
+    def _export_students(self):
+        import csv
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV","*.csv")],
+            initialfile="students.csv", parent=self)
+        if path:
+            rows = get_all_students()
+            with open(path, "w", newline="", encoding="utf-8") as f:
+                if rows:
+                    writer = csv.DictWriter(f, fieldnames=[k for k in rows[0] if k!="fingerprint"])
+                    writer.writeheader()
+                    for r in rows:
+                        r.pop("fingerprint", None)
+                        writer.writerow(r)
+            messagebox.showinfo("Exported", f"Saved to:\n{path}", parent=self)
+
+    def _export_logs(self):
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV","*.csv")],
+            initialfile=f"logs_{date.today()}.csv", parent=self)
+        if path:
+            export_logs_to_csv(path)
+            messagebox.showinfo("Exported", f"Saved to:\n{path}", parent=self)
+
+    def _export_delete(self):
+        if not messagebox.askyesno("Confirm",
+            "Export all logs to CSV and DELETE from database?", parent=self):
+            return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV","*.csv")],
+            initialfile=f"logs_archive_{date.today()}.csv", parent=self)
+        if path:
+            export_logs_to_csv(path, delete_after=True)
+            messagebox.showinfo("Done", f"Exported and deleted.\nArchive at:\n{path}", parent=self)
+            self._load_logs()
+
+
+# ─── Entry point ───────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    init_all()
+    seed_demo()
+    app = FingerprintApp()
+    app.mainloop()
