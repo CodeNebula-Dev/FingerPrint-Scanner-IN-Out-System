@@ -23,6 +23,7 @@ set(ENGINE_SOURCES
 )
 
 add_library(gate_engine SHARED ${ENGINE_SOURCES})
+set_target_properties(gate_engine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 target_include_directories(gate_engine
     PUBLIC

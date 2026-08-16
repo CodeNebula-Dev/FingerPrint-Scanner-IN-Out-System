@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\alluy\OneDrive\Documents\GitHub\FingerPrint-Scanner-IN-Out-System\cpp_engine_windows\build\CMakeFiles\c4f0ea1cddc14828ffcd48832c087fcb\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{52C2733F-C703-3252-9446-1FDEA075DAB0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

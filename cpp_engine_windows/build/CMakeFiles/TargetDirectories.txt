@@ -1,0 +1,4 @@
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/CMakeFiles/gate_engine.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/CMakeFiles/gate_cli.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/CMakeFiles/ZERO_CHECK.dir

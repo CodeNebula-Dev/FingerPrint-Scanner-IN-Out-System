@@ -143,20 +143,20 @@ void do_enroll()
     student.is_hosteller = (hosteller == 1);
 
     std::cout << BOLD << YELLOW
-              << "\n  >>> [ACTION REQUIRED] Please touch the MacBook Touch ID "
-                 "scanner to enroll... <<<\n"
+              << "\n  >>> [ACTION REQUIRED] Please use the Windows laptop "
+                 "fingerprint scanner / Windows Hello to enroll... <<<\n"
               << RESET;
     std::string prompt_str = "Enroll fingerprint for student " + name;
     bool touch_ok = windows_biometric_authenticate(prompt_str.c_str());
 
     if (!touch_ok)
     {
-        print_error("MacBook Touch ID enrollment failed or was cancelled. "
+        print_error("Windows biometric enrollment failed or was cancelled. "
                     "Enrollment aborted.");
         return;
     }
 
-    print_success("MacBook Touch ID success!");
+    print_success("Windows biometric enrollment succeeded!");
 
     // Generate mock template
     generate_mock_template(roll, student.fingerprint_template);
@@ -184,8 +184,8 @@ void do_scan()
     }
 
     std::cout << BOLD << YELLOW
-              << "\n  >>> [ACTION REQUIRED] Please touch the MacBook Touch ID "
-                 "scanner... <<<\n"
+              << "\n  >>> [ACTION REQUIRED] Please use the Windows laptop "
+                 "fingerprint sensor / Windows Hello to authenticate... <<<\n"
               << RESET;
 
     std::string prompt_str = "Authorize gate scan";
@@ -193,14 +193,14 @@ void do_scan()
 
     if (!touch_ok)
     {
-        print_error("MacBook Touch ID authentication failed or was cancelled.");
+        print_error("Windows biometric authentication failed or was cancelled.");
         // Write to rejection log
         uint8_t failed_scan[512] = {0};
         rejection_log_write(get_current_date_string().c_str(), failed_scan, 512);
         return;
     }
 
-    print_success("MacBook Touch ID success!");
+    print_success("Windows biometric authentication succeeded!");
 
     // ==================================================================
     // [DEV MODE] Since macOS Touch ID does not provide raw fingerprint
@@ -210,16 +210,20 @@ void do_scan()
     // replaced by actual sensor data capture.
     // ==================================================================
     std::cout << BOLD << BLUE
-              << "\n  [DEV MODE] Simulating fingerprint scan...\n"
+              << "\n  [WINDOWS DEV-FALLBACK MODE] Windows Hello succeeded, but the "
+                 "WinBio API does not expose the raw fingerprint template for "
+                 "database matching in this build.\n"
+              << "  To keep the app working on a Windows laptop, enter the "
+                 "same roll number that was enrolled earlier.\n"
               << RESET;
-    std::cout << "  Enter Roll Number to simulate scan (e.g. 26CSE001): ";
+    std::cout << "  Enter enrolled Roll Number for this scan (e.g. 26CSE001): ";
     std::string sim_roll;
     std::cin >> sim_roll;
 
     uint8_t live_scan[512];
     generate_mock_template(sim_roll, live_scan);
 
-    std::cout << "  Processing scan...\n";
+    std::cout << "  Processing scan against the enrolled fingerprint template...\n";
 
     // Run database matching — searches ALL enrolled students
     MatchResult match = fingerprint_match(live_scan, 512);
@@ -227,7 +231,9 @@ void do_scan()
     if (!match.matched)
     {
         print_error("Fingerprint match rejected by database engine!");
-        std::cout << "  Student is not enrolled or fingerprint not recognized.\n";
+        std::cout << "  The roll number entered does not match any enrolled "
+                     "template in this Windows dev fallback.\n";
+        std::cout << "  Use the exact same roll number that was enrolled earlier.\n";
         rejection_log_write(get_current_date_string().c_str(), live_scan, 512);
         return;
     }
