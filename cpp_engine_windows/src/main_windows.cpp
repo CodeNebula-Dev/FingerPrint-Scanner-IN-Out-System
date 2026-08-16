@@ -158,16 +158,19 @@ void do_enroll()
 
     print_success("Biometric scan verified!");
 
-    // Capture or generate template
-    windows_capture_template(student.fingerprint_template, 512);
+    student_add(student);
 
-    if (student_add(student))
+    // Capture or generate raw template
+    uint8_t raw_template[512];
+    windows_capture_template(raw_template, 512);
+
+    if (fingerprint_enroll(student.roll_number, raw_template, 512))
     {
-        print_success("Student enrolled successfully on disk!");
+        print_success("Student enrolled & BioHashed successfully on disk!");
     }
     else
     {
-        print_error("Failed to enroll student.");
+        print_error("Failed to enroll biometric template.");
     }
 }
 
