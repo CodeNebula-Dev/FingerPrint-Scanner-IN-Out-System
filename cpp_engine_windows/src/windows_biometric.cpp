@@ -110,23 +110,24 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Triggers official Windows Hello Modal Popup (like Mac Touch ID prompt)
+// Triggers official Windows Hello Modal Popup (identical to Mac Touch ID prompt)
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
     std::cout << BOLD << CYAN << "\n  >>> [WINDOWS HELLO TOUCH ID] Opening Biometric Dialog... <<<\n" << RESET;
 
     std::string prompt = prompt_reason ? prompt_reason : "Authorize Campus Gate Scan";
-    // Sanitize prompt for command line
     for (char &c : prompt) {
         if (c == '"' || c == '\'') c = ' ';
     }
 
-    // Call Windows.Security.Credentials.UI.UserConsentVerifier which displays the native OS Windows Hello popup
-    std::string cmd = "powershell -WindowStyle Hidden -Command \""
+    // Use WinRT async polling loop compatible with standard Windows PowerShell 5.1 and 7+
+    std::string cmd = "powershell -Command \""
                       "[Windows.Security.Credentials.UI.UserConsentVerifier,Windows.Security.Credentials.UI,ContentType=WindowsRuntime] > $null; "
-                      "$res = [Windows.Security.Credentials.UI.UserConsentVerifier]::RequestVerificationAsync('" + prompt + "').GetAwaiter().GetResult(); "
-                      "if ($res -eq 'Verified') { exit 0 } else { exit 1 }\"";
+                      "$op = [Windows.Security.Credentials.UI.UserConsentVerifier]::RequestVerificationAsync('" + prompt + "'); "
+                      "while ($op.Status.ToString() -eq 'Started') { Start-Sleep -Milliseconds 100 }; "
+                      "$res = $op.GetResults(); "
+                      "if ($res.ToString() -eq 'Verified') { exit 0 } else { exit 1 }\"";
 
     int exit_code = std::system(cmd.c_str());
     if (exit_code == 0)
