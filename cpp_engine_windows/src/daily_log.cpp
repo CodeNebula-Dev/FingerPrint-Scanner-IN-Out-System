@@ -2,291 +2,118 @@
 #include "serializer.h"
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 #include <iostream>
-#include <sstream>
-#include <cstring>
-#include <iomanip>
 
 namespace fs = std::filesystem;
 
-extern std::string g_project_root;
+extern std::string g_root_path;
 
-// Helper to get month directory name
-static std::string get_month_folder_name(const std::string &mm)
-{
-    if (mm == "01")
-        return "01_January";
-    if (mm == "02")
-        return "02_February";
-    if (mm == "03")
-        return "03_March";
-    if (mm == "04")
-        return "04_April";
-    if (mm == "05")
-        return "05_May";
-    if (mm == "06")
-        return "06_June";
-    if (mm == "07")
-        return "07_July";
-    if (mm == "08")
-        return "08_August";
-    if (mm == "09")
-        return "09_September";
-    if (mm == "10")
-        return "10_October";
-    if (mm == "11")
-        return "11_November";
-    if (mm == "12")
-        return "12_December";
-    return mm + "_Unknown";
+static std::string get_log_filepath(const char* date_string) {
+    std::string date_str(date_string);
+    std::string year = date_str.substr(0, 4);
+    std::string month = date_str.substr(5, 2);
+    
+    std::string dir = g_root_path + "/Everyday_data/" + year + "/" + month;
+    fs::create_directories(dir);
+    return dir + "/" + date_str + ".dat";
 }
 
-// Parses DD_MM_YYYY or DD-MM-YYYY or DD/MM/YYYY
-static bool parse_date_string(const std::string &date_string, std::string &day, std::string &month, std::string &year)
-{
-    std::string normalized = date_string;
-    for (char &c : normalized)
-    {
-        if (c == '-' || c == '/')
-            c = '_';
+bool log_create_day(const char* date_string) {
+    std::string filepath = get_log_filepath(date_string);
+    if (!fs::exists(filepath)) {
+        std::ofstream out(filepath, std::ios::binary);
+        return out.good();
     }
-
-    std::stringstream ss(normalized);
-    std::string d, m, y;
-    if (std::getline(ss, d, '_') && std::getline(ss, m, '_') && std::getline(ss, y, '_'))
-    {
-        day = d;
-        month = m;
-        year = y;
-        return d.size() == 2 && m.size() == 2 && y.size() == 4;
-    }
-    return false;
+    return true;
 }
 
-// Returns full path to the daily log binary file
-static std::string get_daily_log_filepath(const std::string &date_string)
-{
-    std::string day, month, year;
-    if (!parse_date_string(date_string, day, month, year))
-    {
-        return (fs::path(g_project_root) / "Everyday_data" / (date_string + ".dat")).string();
-    }
-    std::string month_dir = get_month_folder_name(month);
-    return (fs::path(g_project_root) / "Everyday_data" / year / month_dir / (date_string + ".dat")).string();
+bool log_day_exists(const char* date_string) {
+    return fs::exists(get_log_filepath(date_string));
 }
 
-// Helper date struct for range calculation
-struct Date
-{
-    int day;
-    int month;
-    int year;
-
-    bool operator<=(const Date &other) const
-    {
-        if (year != other.year)
-            return year < other.year;
-        if (month != other.month)
-            return month < other.month;
-        return day <= other.day;
-    }
-
-    std::string to_string() const
-    {
-        std::stringstream ss;
-        ss << std::setw(2) << std::setfill('0') << day << "_"
-           << std::setw(2) << std::setfill('0') << month << "_"
-           << std::setw(4) << year;
-        return ss.str();
-    }
-};
-
-static Date parse_date(const std::string &date_str)
-{
-    std::string d, m, y;
-    parse_date_string(date_str, d, m, y);
-    return Date{std::stoi(d), std::stoi(m), std::stoi(y)};
+bool log_add_entry(const char* date_string, const LogEntry& entry) {
+    std::string filepath = get_log_filepath(date_string);
+    return serializer_write_log_entry(filepath, entry);
 }
 
-static void increment_date(Date &date)
-{
-    int days_in_months[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-    if (date.year % 4 == 0 && (date.year % 100 != 0 || date.year % 400 == 0))
-    {
-        days_in_months[2] = 29;
-    }
-
-    date.day++;
-    if (date.day > days_in_months[date.month])
-    {
-        date.day = 1;
-        date.month++;
-        if (date.month > 12)
-        {
-            date.month = 1;
-            date.year++;
-        }
-    }
-}
-
-// Implement APIs
-
-bool log_create_day(const char *date_string)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
-    if (fs::exists(filepath))
-    {
-        return false;
-    }
-
-    try
-    {
-        fs::create_directories(fs::path(filepath).parent_path());
-        std::ofstream file(filepath, std::ios::binary);
-        return file.good();
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "[DailyLog] Error creating day log: " << e.what() << std::endl;
-        return false;
-    }
-}
-
-bool log_day_exists(const char *date_string)
-{
-    return fs::exists(get_daily_log_filepath(date_string));
-}
-
-bool log_add_entry(const char *date_string, const LogEntry &entry)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
+bool log_update_entry(const char* date_string, const char* roll_number, const LogEntry& updated_entry) {
+    std::string filepath = get_log_filepath(date_string);
     std::vector<LogEntry> entries;
+    if (!serializer_read_log_entries(filepath, entries)) return false;
 
-    // Read existing entries if file exists
-    if (fs::exists(filepath))
-    {
-        deserialize_log_entries(filepath, entries);
-    }
-    else
-    {
-        // Create file if it doesn't exist
-        log_create_day(date_string);
-    }
-
-    // Check if duplicate entry
-    for (const auto &existing : entries)
-    {
-        if (std::strcmp(existing.roll_number, entry.roll_number) == 0)
-        {
-            std::cerr << "[DailyLog] Warning: Duplicate log entry today for student: " << entry.roll_number << std::endl;
-            return false;
-        }
-    }
-
-    entries.push_back(entry);
-    return serialize_log_entries(filepath, entries);
-}
-
-bool log_update_entry(const char *date_string, const char *roll_number, const LogEntry &updated_entry)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
-    std::vector<LogEntry> entries;
-    if (!deserialize_log_entries(filepath, entries))
-    {
-        return false;
-    }
-
-    bool found = false;
-    for (auto &entry : entries)
-    {
-        if (std::strcmp(entry.roll_number, roll_number) == 0)
-        {
+    bool updated = false;
+    for (auto& entry : entries) {
+        if (std::string(entry.roll_number) == roll_number) {
             entry = updated_entry;
-            found = true;
+            updated = true;
             break;
         }
     }
 
-    if (!found)
-    {
-        std::cerr << "[DailyLog] Error: Cannot update entry, student " << roll_number << " has not scanned today yet." << std::endl;
-        return false;
-    }
+    if (!updated) return false;
 
-    return serialize_log_entries(filepath, entries);
+    std::ofstream out(filepath, std::ios::binary | std::ios::trunc);
+    for (const auto& entry : entries) {
+        out.write(reinterpret_cast<const char*>(&entry), sizeof(LogEntry));
+    }
+    return out.good();
 }
 
-bool log_get_entry(const char *date_string, const char *roll_number, LogEntry &entry)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
+bool log_get_entry(const char* date_string, const char* roll_number, LogEntry& entry) {
+    std::string filepath = get_log_filepath(date_string);
     std::vector<LogEntry> entries;
-    if (!deserialize_log_entries(filepath, entries))
-    {
-        return false;
-    }
+    if (!serializer_read_log_entries(filepath, entries)) return false;
 
-    for (const auto &e : entries)
-    {
-        if (std::strcmp(e.roll_number, roll_number) == 0)
-        {
-            entry = e;
+    for (const auto& item : entries) {
+        if (std::string(item.roll_number) == roll_number) {
+            entry = item;
             return true;
         }
     }
     return false;
 }
 
-std::vector<LogEntry> log_get_all_entries(const char *date_string)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
+std::vector<LogEntry> log_get_all_entries(const char* date_string) {
     std::vector<LogEntry> entries;
-    deserialize_log_entries(filepath, entries);
+    std::string filepath = get_log_filepath(date_string);
+    serializer_read_log_entries(filepath, entries);
     return entries;
 }
 
-std::vector<LogEntry> log_get_entries_in_range(const char *start_date, const char *end_date)
-{
-    std::vector<LogEntry> results;
-    try
-    {
-        Date start = parse_date(start_date);
-        Date end = parse_date(end_date);
+std::vector<LogEntry> log_get_entries_in_range(const char* start_date, const char* end_date) {
+    std::vector<LogEntry> all_entries;
+    std::string base_dir = g_root_path + "/Everyday_data";
 
-        for (Date curr = start; curr <= end; increment_date(curr))
-        {
-            std::string date_str = curr.to_string();
-            std::string filepath = get_daily_log_filepath(date_str);
-            if (fs::exists(filepath))
-            {
+    if (!fs::exists(base_dir)) return all_entries;
+
+    std::string start_s(start_date);
+    std::string end_s(end_date);
+
+    for (const auto& entry : fs::recursive_directory_iterator(base_dir)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".dat") {
+            std::string filename = entry.path().stem().string();
+            if (filename >= start_s && filename <= end_s) {
                 std::vector<LogEntry> day_entries;
-                if (deserialize_log_entries(filepath, day_entries))
-                {
-                    results.insert(results.end(), day_entries.begin(), day_entries.end());
-                }
+                serializer_read_log_entries(entry.path().string(), day_entries);
+                all_entries.insert(all_entries.end(), day_entries.begin(), day_entries.end());
             }
         }
     }
-    catch (const std::exception &e)
-    {
-        std::cerr << "[DailyLog] Error parsing date range: " << e.what() << std::endl;
-    }
-    return results;
+    return all_entries;
 }
 
-bool log_delete_day(const char *date_string)
-{
-    std::string filepath = get_daily_log_filepath(date_string);
-    try
-    {
-        if (fs::exists(filepath))
-        {
-            fs::remove(filepath);
-            return true;
-        }
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "[DailyLog] Error deleting day log file: " << e.what() << std::endl;
+bool log_delete_day(const char* date_string) {
+    std::string filepath = get_log_filepath(date_string);
+    if (fs::exists(filepath)) {
+        return fs::remove(filepath);
     }
     return false;
+}
+
+bool rejection_log_write(const char* date_string, const uint8_t* failed_scan, int scan_length) {
+    std::string dir = g_root_path + "/Rejection_log";
+    fs::create_directories(dir);
+    std::string filepath = dir + "/rejections_" + std::string(date_string) + ".dat";
+    return serializer_append_rejection(filepath, failed_scan, scan_length);
 }

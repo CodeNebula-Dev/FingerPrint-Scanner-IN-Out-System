@@ -637,7 +637,7 @@ void do_view_master_db()
     for (const auto &student : students)
     {
         std::string role_str = student.is_hosteller ? "Hosteller" : "Day Scholar";
-        uint32_t hash = compute_fnv1a_hash(student.fingerprint_template, 512);
+        uint64_t hash = indexer_hash_template(student.encrypted_template, 512);
 
         std::cout << std::left << std::setw(12) << student.roll_number
                   << std::setw(20) << student.name << std::setw(10)

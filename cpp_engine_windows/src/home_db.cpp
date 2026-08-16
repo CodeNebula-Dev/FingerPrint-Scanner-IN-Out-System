@@ -2,108 +2,59 @@
 #include "serializer.h"
 #include <filesystem>
 #include <fstream>
-#include <cstring>
-#include <iostream>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
-extern std::string g_project_root;
+extern std::string g_root_path;
 
-// Helper to get active home file path
-static std::string get_home_active_filepath()
-{
-    return (fs::path(g_project_root) / "Home_data" / "home_active.dat").string();
+static std::string get_home_filepath() {
+    std::string dir = g_root_path + "/Home_data";
+    fs::create_directories(dir);
+    return dir + "/home_active.dat";
 }
 
-bool home_add(const HomeRecord &record)
-{
-    std::string filepath = get_home_active_filepath();
-    std::vector<HomeRecord> records;
-
-    // Read current records
-    if (fs::exists(filepath))
-    {
-        deserialize_home_records(filepath, records);
-    }
-
-    // Check if student is already marked as gone home
-    for (const auto &r : records)
-    {
-        if (std::strcmp(r.roll_number, record.roll_number) == 0)
-        {
-            std::cout << "[HomeDB] Student " << record.roll_number << " is already in active home database." << std::endl;
-            return true;
-        }
-    }
-
-    records.push_back(record);
-    return serialize_home_records(filepath, records);
+bool home_add(const HomeRecord& record) {
+    std::string filepath = get_home_filepath();
+    return serializer_write_home_record(filepath, record);
 }
 
-bool home_remove(const char *roll_number)
-{
-    std::string filepath = get_home_active_filepath();
+bool home_remove(const char* roll_number) {
+    std::string filepath = get_home_filepath();
     std::vector<HomeRecord> records;
-    if (!fs::exists(filepath))
-    {
-        return false;
-    }
+    if (!serializer_read_home_records(filepath, records)) return false;
 
-    if (!deserialize_home_records(filepath, records))
-    {
-        return false;
-    }
+    auto it = std::remove_if(records.begin(), records.end(), [roll_number](const HomeRecord& rec) {
+        return std::string(rec.roll_number) == roll_number;
+    });
 
-    bool found = false;
-    for (auto it = records.begin(); it != records.end(); ++it)
-    {
-        if (std::strcmp(it->roll_number, roll_number) == 0)
-        {
-            records.erase(it);
-            found = true;
-            break;
-        }
-    }
+    if (it == records.end()) return false;
 
-    if (!found)
-    {
-        return false; // Not in list
-    }
+    records.erase(it, records.end());
 
-    return serialize_home_records(filepath, records);
+    std::ofstream out(filepath, std::ios::binary | std::ios::trunc);
+    for (const auto& rec : records) {
+        out.write(reinterpret_cast<const char*>(&rec), sizeof(HomeRecord));
+    }
+    return true;
 }
 
-bool home_exists(const char *roll_number)
-{
-    std::string filepath = get_home_active_filepath();
+bool home_exists(const char* roll_number) {
+    std::string filepath = get_home_filepath();
     std::vector<HomeRecord> records;
-    if (!fs::exists(filepath))
-    {
-        return false;
-    }
+    if (!serializer_read_home_records(filepath, records)) return false;
 
-    if (!deserialize_home_records(filepath, records))
-    {
-        return false;
-    }
-
-    for (const auto &r : records)
-    {
-        if (std::strcmp(r.roll_number, roll_number) == 0)
-        {
+    for (const auto& rec : records) {
+        if (std::string(rec.roll_number) == roll_number) {
             return true;
         }
     }
     return false;
 }
 
-std::vector<HomeRecord> home_get_all()
-{
-    std::string filepath = get_home_active_filepath();
+std::vector<HomeRecord> home_get_all() {
     std::vector<HomeRecord> records;
-    if (fs::exists(filepath))
-    {
-        deserialize_home_records(filepath, records);
-    }
+    std::string filepath = get_home_filepath();
+    serializer_read_home_records(filepath, records);
     return records;
 }

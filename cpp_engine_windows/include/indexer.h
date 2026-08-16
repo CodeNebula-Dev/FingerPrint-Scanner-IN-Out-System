@@ -1,32 +1,24 @@
-#ifndef INDEXER_H
-#define INDEXER_H
+#ifndef INDEXER_V2_H
+#define INDEXER_V2_H
 
-#include "engine.h"
-#include <vector>
+#include <cstdint>
+#include <cstddef>
 #include <string>
+#include <vector>
 
-// In-memory cache entry for fingerprint matching
-struct CachedFingerprint
-{
-    uint32_t hash;
-    char roll_number[20];
-    char file_path[256]; // Relative path to project root
+struct IndexEntry {
+    char     roll_number[20];
+    uint64_t template_hash;
 };
 
-// Global in-memory cache of fingerprint templates/hashes
-extern std::vector<CachedFingerprint> g_fingerprint_cache;
-extern std::string g_project_root;
+void indexer_init();
+void indexer_clear();
 
-// Hashing helper (FNV-1a 32-bit hash)
-uint32_t compute_fnv1a_hash(const uint8_t *data, size_t length);
+void indexer_insert(const char* roll_number, const uint8_t* encrypted_template, size_t len);
+void indexer_remove(const char* roll_number);
 
-// Load all entries from master_index.dat into memory
-bool indexer_load();
+uint64_t indexer_hash_template(const uint8_t* encrypted_template, size_t len);
 
-// Add or update an entry in the master index file and cache
-bool indexer_add_or_update(const char *roll_number, uint32_t hash, const std::string &relative_path);
+std::vector<std::string> indexer_lookup_candidates(uint64_t template_hash);
 
-// Remove an entry from the master index file and cache
-bool indexer_remove(const char *roll_number);
-
-#endif // INDEXER_H
+#endif // INDEXER_V2_H

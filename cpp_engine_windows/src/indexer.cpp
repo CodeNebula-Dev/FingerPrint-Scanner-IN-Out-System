@@ -1,107 +1,53 @@
 #include "indexer.h"
-#include <fstream>
-#include <iostream>
+#include <unordered_map>
 #include <cstring>
-#include <filesystem>
+#include <algorithm>
 
-namespace fs = std::filesystem;
+static std::unordered_map<std::string, IndexEntry> g_index_map;
 
-std::vector<CachedFingerprint> g_fingerprint_cache;
-std::string g_project_root;
+void indexer_init() {
+    g_index_map.clear();
+}
 
-uint32_t compute_fnv1a_hash(const uint8_t *data, size_t length)
-{
-    uint32_t hash = 2166136261u;
-    for (size_t i = 0; i < length; ++i)
-    {
-        hash ^= data[i];
-        hash *= 16777619u;
+void indexer_clear() {
+    g_index_map.clear();
+}
+
+uint64_t indexer_hash_template(const uint8_t* encrypted_template, size_t len) {
+    if (!encrypted_template || len == 0) return 0;
+
+    uint64_t hash = 14695981039346656037ULL;
+    const uint64_t FNV_prime = 1099511628211ULL;
+
+    for (size_t i = 0; i < len; ++i) {
+        hash ^= encrypted_template[i];
+        hash *= FNV_prime;
     }
     return hash;
 }
 
-std::string get_master_index_path()
-{
-    return (fs::path(g_project_root) / "Student_data" / "master_index.dat").string();
+void indexer_insert(const char* roll_number, const uint8_t* encrypted_template, size_t len) {
+    if (!roll_number || !encrypted_template) return;
+
+    IndexEntry entry;
+    std::strncpy(entry.roll_number, roll_number, sizeof(entry.roll_number) - 1);
+    entry.roll_number[sizeof(entry.roll_number) - 1] = '\0';
+    entry.template_hash = indexer_hash_template(encrypted_template, len);
+
+    g_index_map[std::string(roll_number)] = entry;
 }
 
-bool indexer_load()
-{
-    g_fingerprint_cache.clear();
-    std::string path = get_master_index_path();
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open())
-    {
-        // It's fine if the file doesn't exist yet, we just start with an empty cache
-        return true;
-    }
-
-    CachedFingerprint entry;
-    while (file.read(reinterpret_cast<char *>(&entry), sizeof(CachedFingerprint)))
-    {
-        g_fingerprint_cache.push_back(entry);
-    }
-
-    std::cout << "[Indexer] Loaded " << g_fingerprint_cache.size() << " student records into fingerprint cache." << std::endl;
-    return true;
+void indexer_remove(const char* roll_number) {
+    if (!roll_number) return;
+    g_index_map.erase(std::string(roll_number));
 }
 
-bool save_cache_to_disk()
-{
-    std::string path = get_master_index_path();
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    if (!file.is_open())
-    {
-        std::cerr << "[Indexer] Error: Failed to open master index for writing: " << path << std::endl;
-        return false;
-    }
-
-    for (const auto &entry : g_fingerprint_cache)
-    {
-        file.write(reinterpret_cast<const char *>(&entry), sizeof(CachedFingerprint));
-    }
-    return file.good();
-}
-
-bool indexer_add_or_update(const char *roll_number, uint32_t hash, const std::string &relative_path)
-{
-    // Check if it already exists in the cache
-    bool found = false;
-    for (auto &entry : g_fingerprint_cache)
-    {
-        if (std::strcmp(entry.roll_number, roll_number) == 0)
-        {
-            entry.hash = hash;
-            std::strncpy(entry.file_path, relative_path.c_str(), sizeof(entry.file_path) - 1);
-            entry.file_path[sizeof(entry.file_path) - 1] = '\0';
-            found = true;
-            break;
+std::vector<std::string> indexer_lookup_candidates(uint64_t template_hash) {
+    std::vector<std::string> candidates;
+    for (const auto& kv : g_index_map) {
+        if (kv.second.template_hash == template_hash) {
+            candidates.push_back(kv.first);
         }
     }
-
-    if (!found)
-    {
-        CachedFingerprint new_entry;
-        new_entry.hash = hash;
-        std::strncpy(new_entry.roll_number, roll_number, sizeof(new_entry.roll_number) - 1);
-        new_entry.roll_number[sizeof(new_entry.roll_number) - 1] = '\0';
-        std::strncpy(new_entry.file_path, relative_path.c_str(), sizeof(new_entry.file_path) - 1);
-        new_entry.file_path[sizeof(new_entry.file_path) - 1] = '\0';
-        g_fingerprint_cache.push_back(new_entry);
-    }
-
-    return save_cache_to_disk();
-}
-
-bool indexer_remove(const char *roll_number)
-{
-    for (auto it = g_fingerprint_cache.begin(); it != g_fingerprint_cache.end(); ++it)
-    {
-        if (std::strcmp(it->roll_number, roll_number) == 0)
-        {
-            g_fingerprint_cache.erase(it);
-            return save_cache_to_disk();
-        }
-    }
-    return false; // Not found in index
+    return candidates;
 }
