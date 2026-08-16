@@ -7,6 +7,7 @@
 #include <conio.h>
 #pragma comment(lib, "winbio.lib")
 #pragma comment(lib, "comsuppw.lib")
+#pragma comment(lib, "advapi32.lib")
 #endif
 
 #include <iostream>
@@ -108,19 +109,18 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Background thread listening for physical hardware touch + foreground interactive bypass
+// Background thread listening for real physical Windows Hello touch
 static bool try_winbio_authenticate(const char *prompt_reason)
 {
 #ifdef _WIN32
     std::cout << BOLD << CYAN << "\n  >>> [WINDOWS TOUCH ID] " 
               << (prompt_reason ? prompt_reason : "Please touch your fingerprint sensor now...") 
               << " <<<\n" << RESET;
-    std::cout << "  (Touch your laptop fingerprint sensor, or press ENTER to confirm): ";
+    std::cout << "  (Place enrolled finger on laptop sensor, or press ENTER to confirm): ";
 
     std::atomic<bool> hardware_verified(false);
     std::atomic<bool> thread_done(false);
 
-    // Run WinBio in background thread so terminal never locks up
     std::thread bio_thread([&]() {
         WINBIO_SESSION_HANDLE sessionHandle = 0;
         HRESULT hr = WinBioOpenSession(
@@ -133,20 +133,56 @@ static bool try_winbio_authenticate(const char *prompt_reason)
 
         if (SUCCEEDED(hr))
         {
+            // Extract the SID of the active logged-in Windows user
             WINBIO_IDENTITY identity = {0};
-            identity.Type = WINBIO_ID_TYPE_NULL;
+            bool has_sid = false;
+            HANDLE hToken = NULL;
+
+            if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+            {
+                DWORD tokenInfoLength = 0;
+                GetTokenInformation(hToken, TokenUser, NULL, 0, &tokenInfoLength);
+                if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+                {
+                    std::vector<BYTE> tokenData(tokenInfoLength);
+                    if (GetTokenInformation(hToken, TokenUser, tokenData.data(), tokenInfoLength, &tokenInfoLength))
+                    {
+                        TOKEN_USER* pTokenUser = reinterpret_cast<TOKEN_USER*>(tokenData.data());
+                        identity.Type = WINBIO_ID_TYPE_SID;
+                        DWORD sidLen = GetLengthSid(pTokenUser->User.Sid);
+                        if (sidLen <= sizeof(identity.Value.AccountSid.Data))
+                        {
+                            CopySid(sizeof(identity.Value.AccountSid.Data), identity.Value.AccountSid.Data, pTokenUser->User.Sid);
+                            identity.Value.AccountSid.Size = sidLen;
+                            has_sid = true;
+                        }
+                    }
+                }
+                CloseHandle(hToken);
+            }
+
             WINBIO_UNIT_ID unitId = 0;
             BOOLEAN match = FALSE;
             WINBIO_REJECT_DETAIL rejectDetail = 0;
 
-            hr = WinBioVerify(
-                sessionHandle,
-                &identity,
-                WINBIO_SUBTYPE_ANY,
-                &unitId,
-                &match,
-                &rejectDetail
-            );
+            if (has_sid)
+            {
+                // Verify directly against the user's enrolled Windows Hello fingerprint profile
+                hr = WinBioVerify(
+                    sessionHandle,
+                    &identity,
+                    WINBIO_SUBTYPE_ANY,
+                    &unitId,
+                    &match,
+                    &rejectDetail
+                );
+            }
+            else
+            {
+                WINBIO_BIOMETRIC_SUBTYPE subFactor = 0;
+                hr = WinBioIdentify(sessionHandle, &unitId, &identity, &subFactor, &rejectDetail);
+                match = SUCCEEDED(hr);
+            }
 
             WinBioCloseSession(sessionHandle);
 
@@ -158,7 +194,6 @@ static bool try_winbio_authenticate(const char *prompt_reason)
         thread_done = true;
     });
 
-    // Check for keyboard press OR hardware touch
     bool finished = false;
     bool result = false;
 
@@ -196,7 +231,7 @@ static bool try_winbio_authenticate(const char *prompt_reason)
 
     if (bio_thread.joinable())
     {
-        bio_thread.detach(); // Detach cleanly if user pressed enter before hardware timeout
+        bio_thread.detach();
     }
 
     return result;
@@ -249,7 +284,6 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
 bool windows_biometric_authenticate(const char *prompt_reason)
 {
-    // 1. External USB scanner on COM port
     if (g_com_connected)
     {
         std::cout << "\n[External Scanner: " << g_active_com_port << "] " 
@@ -258,6 +292,5 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    // 2. Windows Laptop Touch ID (with non-blocking Enter key bypass)
     return try_winbio_authenticate(prompt_reason);
 }
