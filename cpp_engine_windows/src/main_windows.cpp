@@ -143,23 +143,23 @@ void do_enroll()
     student.is_hosteller = (hosteller == 1);
 
     std::cout << BOLD << YELLOW
-              << "\n  >>> [ACTION REQUIRED] Please touch the MacBook Touch ID "
-                 "scanner to enroll... <<<\n"
+              << "\n  >>> [ACTION REQUIRED] Please place finger on the Biometric "
+                 "Scanner... <<<\n"
               << RESET;
     std::string prompt_str = "Enroll fingerprint for student " + name;
     bool touch_ok = windows_biometric_authenticate(prompt_str.c_str());
 
     if (!touch_ok)
     {
-        print_error("MacBook Touch ID enrollment failed or was cancelled. "
+        print_error("Biometric enrollment failed or was cancelled. "
                     "Enrollment aborted.");
         return;
     }
 
-    print_success("MacBook Touch ID success!");
+    print_success("Biometric scan verified!");
 
-    // Generate mock template
-    generate_mock_template(roll, student.fingerprint_template);
+    // Capture or generate template
+    windows_capture_template(student.fingerprint_template, 512);
 
     if (student_add(student))
     {
@@ -184,8 +184,8 @@ void do_scan()
     }
 
     std::cout << BOLD << YELLOW
-              << "\n  >>> [ACTION REQUIRED] Please touch the MacBook Touch ID "
-                 "scanner... <<<\n"
+              << "\n  >>> [ACTION REQUIRED] Please place finger on the Biometric "
+                 "Scanner... <<<\n"
               << RESET;
 
     std::string prompt_str = "Authorize gate scan";
@@ -193,14 +193,14 @@ void do_scan()
 
     if (!touch_ok)
     {
-        print_error("MacBook Touch ID authentication failed or was cancelled.");
+        print_error("Biometric authentication failed or was cancelled.");
         // Write to rejection log
         uint8_t failed_scan[512] = {0};
         rejection_log_write(get_current_date_string().c_str(), failed_scan, 512);
         return;
     }
 
-    print_success("MacBook Touch ID success!");
+    print_success("Biometric scan verified!");
 
     // ==================================================================
     // [DEV MODE] Since macOS Touch ID does not provide raw fingerprint
