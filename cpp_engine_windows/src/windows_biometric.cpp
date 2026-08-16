@@ -111,7 +111,7 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Native Win32 Windows Security Pop-up Dialog with Windows Hello Biometrics
+// Native Win32 Windows Security Pop-up Dialog with Windows Hello Fingerprint
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
@@ -134,7 +134,8 @@ static bool try_windows_hello_popup(const char *prompt_reason)
     ULONG authBufferSize = 0;
     BOOL save = FALSE;
 
-    // CREDUIWIN_ENUMERATE_CURRENT_USER loads the active user's Windows Hello Fingerprint & PIN tiles
+    DWORD flags = 0x00000200; // CREDUIWIN_ENUMERATE_CURRENT_USER
+
     DWORD dwErr = CredUIPromptForWindowsCredentialsW(
         &cui,
         0,
@@ -144,7 +145,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
         &authBuffer,
         &authBufferSize,
         &save,
-        CREDUIWIN_ENUMERATE_CURRENT_USER | CREDUIWIN_IN_CREDUI_CONTEXT
+        flags
     );
 
     if (dwErr == NO_ERROR)
@@ -189,6 +190,8 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
             if (br >= 10 && resp[9] == 0x00)
             {
+                std::cout << "  [✓] Finger detected and captured from hardware!" << std::endl;
+                
                 uint8_t up_char[] = {0xEF, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x04, 0x08, 0x01, 0x00, 0x0E};
                 WriteFile(g_h_serial, up_char, sizeof(up_char), &bw, NULL);
                 
