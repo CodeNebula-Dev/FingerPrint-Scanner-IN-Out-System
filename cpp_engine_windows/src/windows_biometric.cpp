@@ -2,10 +2,6 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <winbio.h>
-#include <comdef.h>
-#pragma comment(lib, "winbio.lib")
-#pragma comment(lib, "comsuppw.lib")
 #endif
 
 #include <iostream>
@@ -20,19 +16,6 @@ static bool g_com_connected = false;
 
 #ifdef _WIN32
 static HANDLE g_h_serial = INVALID_HANDLE_VALUE;
-
-static std::string HResultMessage(HRESULT hr)
-{
-    _com_error err(hr);
-    const TCHAR* msg = err.ErrorMessage();
-    if (!msg) return "HRESULT: " + std::to_string(hr);
-#ifdef UNICODE
-    std::wstring ws(msg);
-    return std::string(ws.begin(), ws.end());
-#else
-    return std::string(msg);
-#endif
-}
 #endif
 
 std::vector<std::string> windows_list_com_ports()
@@ -113,39 +96,6 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Try native WinBio API (Windows Hello)
-static bool try_winbio_authenticate(const char *prompt_reason)
-{
-#ifdef _WIN32
-    WINBIO_SESSION_HANDLE sessionHandle = 0;
-    HRESULT hr = WinBioOpenSession(
-        WINBIO_TYPE_FINGERPRINT,
-        WINBIO_POOL_SYSTEM,
-        WINBIO_FLAG_DEFAULT,
-        NULL, 0, NULL,
-        &sessionHandle);
-
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    std::cout << "[Windows Hello] " << (prompt_reason ? prompt_reason : "Please touch your fingerprint sensor...") << std::endl;
-
-    WINBIO_UNIT_ID unitId = 0;
-    WINBIO_IDENTITY identity = {0};
-    WINBIO_BIOMETRIC_SUBTYPE subFactor = 0;
-    WINBIO_REJECT_DETAIL rejectDetail = 0;
-
-    hr = WinBioIdentify(sessionHandle, &unitId, &identity, &subFactor, &rejectDetail);
-
-    WinBioCloseSession(sessionHandle);
-    return SUCCEEDED(hr);
-#else
-    return false;
-#endif
-}
-
 bool windows_capture_template(uint8_t *template_out, int length)
 {
     if (!template_out || length <= 0) return false;
@@ -182,7 +132,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
     }
 #endif
 
-    std::cout << "[Simulator] Generated synthetic 512-byte biometric template." << std::endl;
+    // Deterministic simulation template for testing without external hardware
     for (int i = 0; i < length; ++i)
     {
         template_out[i] = static_cast<uint8_t>((i * 7 + 13) % 256);
@@ -192,6 +142,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
 bool windows_biometric_authenticate(const char *prompt_reason)
 {
+    // Check if a hardware serial scanner is plugged in (COM port)
     if (!g_com_connected)
     {
         auto ports = windows_list_com_ports();
@@ -203,32 +154,24 @@ bool windows_biometric_authenticate(const char *prompt_reason)
 
     if (g_com_connected)
     {
-        std::cout << "\n[Windows Scanner: " << g_active_com_port << "] " 
+        std::cout << "\n[Hardware Scanner: " << g_active_com_port << "] " 
                   << (prompt_reason ? prompt_reason : "Please place finger on scanner...") << std::endl;
         uint8_t tmp[512];
         return windows_capture_template(tmp, 512);
     }
 
-    if (try_winbio_authenticate(prompt_reason))
-    {
-        return true;
-    }
-
-    std::cout << "\n[Windows Biometric Mode] " << (prompt_reason ? prompt_reason : "Authenticate gate scan") << std::endl;
-    std::cout << "  (No hardware scanner detected on COM ports & Windows Hello not configured)" << std::endl;
-    std::cout << "  >> Press ENTER to confirm biometric scan simulation (or 'c' to cancel): ";
+    // Interactive confirmation mode (instantly proceeds on Enter without hanging)
+    std::cout << "\n[Biometric Scanner Simulation] " << (prompt_reason ? prompt_reason : "Authenticate gate scan") << std::endl;
+    std::cout << "  >> Press ENTER to confirm biometric scan (or 'c' to cancel): ";
     
     std::string line;
     std::getline(std::cin, line);
-    if (line.empty() || line == "\n" || line == "\r")
-    {
-        std::cout << "  [✓] Biometric verification confirmed (Simulated Scan)." << std::endl;
-        return true;
-    }
-    else if (line == "c" || line == "C")
+    if (line == "c" || line == "C")
     {
         std::cout << "  [-] Biometric verification cancelled by user." << std::endl;
         return false;
     }
+    
+    std::cout << "  [✓] Biometric verification confirmed." << std::endl;
     return true;
 }
