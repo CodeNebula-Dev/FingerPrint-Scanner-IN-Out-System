@@ -111,15 +111,15 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Native Win32 Windows Security Pop-up Dialog (Direct C++ API — Desktop Modal)
+// Native Win32 Windows Security Pop-up Dialog with Windows Hello Biometrics
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
-    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS SECURITY DIALOG] Touch fingerprint reader on pop-up window... <<<\n" << RESET;
+    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS HELLO TOUCH ID] Touch fingerprint sensor on dialog... <<<\n" << RESET;
 
     std::string msg = prompt_reason ? prompt_reason : "Please touch your fingerprint sensor to authorize gate access";
     std::wstring wmsg(msg.begin(), msg.end());
-    std::wstring wtitle = L"Campus Gate System - Windows Hello Touch ID";
+    std::wstring wtitle = L"Campus Gate System - Windows Hello";
 
     CREDUI_INFOW cui;
     std::memset(&cui, 0, sizeof(cui));
@@ -134,6 +134,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
     ULONG authBufferSize = 0;
     BOOL save = FALSE;
 
+    // CREDUIWIN_ENUMERATE_CURRENT_USER loads the active user's Windows Hello Fingerprint & PIN tiles
     DWORD dwErr = CredUIPromptForWindowsCredentialsW(
         &cui,
         0,
@@ -143,7 +144,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
         &authBuffer,
         &authBufferSize,
         &save,
-        CREDUIWIN_GENERIC
+        CREDUIWIN_ENUMERATE_CURRENT_USER | CREDUIWIN_IN_CREDUI_CONTEXT
     );
 
     if (dwErr == NO_ERROR)
@@ -153,7 +154,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
             SecureZeroMemory(authBuffer, authBufferSize);
             CoTaskMemFree(authBuffer);
         }
-        std::cout << BOLD << GREEN << "  [✓] Windows Biometric Touch ID verified successfully!" << RESET << std::endl;
+        std::cout << BOLD << GREEN << "  [✓] Windows Hello Touch ID verified successfully!" << RESET << std::endl;
         return true;
     }
     else
@@ -219,7 +220,7 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    // 2. Open the real Windows Security Touch ID Modal Popup Dialog (Pure native C++ Win32)
+    // 2. Open the real Windows Security Touch ID Modal Popup Dialog
     if (try_windows_hello_popup(prompt_reason))
     {
         return true;
