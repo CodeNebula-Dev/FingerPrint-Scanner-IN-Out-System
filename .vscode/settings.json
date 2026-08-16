@@ -1,3 +1,9 @@
 {
+<<<<<<< Updated upstream
     "cmake.sourceDirectory": "D:/code_works/New folder/FingerPrint-Scanner-IN-Out-System/cpp_engine"
+=======
+    {
+    "cmake.sourceDirectory": "${workspaceFolder}/cpp_engine_windows"
+}
+>>>>>>> Stashed changes
 }
