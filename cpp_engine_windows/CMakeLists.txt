@@ -25,15 +25,21 @@ include_directories(include)
 # Shared library
 add_library(gate_engine SHARED ${ENGINE_SOURCES})
 
-# Link WinBio and comsuppw on Windows if building with MSVC
+# Link WinBio, CredUI, comsuppw, and advapi32 on Windows if building with MSVC
 if (WIN32)
-    target_link_libraries(gate_engine PRIVATE winbio comsuppw)
+    target_link_libraries(gate_engine PRIVATE winbio comsuppw credui advapi32)
 endif()
 
 # CLI application for testing
 add_executable(gate_cli ${ENGINE_SOURCES} src/main_windows.cpp)
+if (WIN32)
+    target_link_libraries(gate_cli PRIVATE winbio comsuppw credui advapi32)
+endif()
 
 # Pipeline validation test executable
 add_executable(test_pipeline ${ENGINE_SOURCES} src/test_pipeline.cpp)
+if (WIN32)
+    target_link_libraries(test_pipeline PRIVATE winbio comsuppw credui advapi32)
+endif()
 
 message(STATUS "Configured C++ Biometric Matching Engine v2.0 (Windows Cancelable Encryption Architecture)")

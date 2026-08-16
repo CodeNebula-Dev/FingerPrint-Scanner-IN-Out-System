@@ -3,9 +3,11 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <winbio.h>
+#include <wincred.h>
 #include <comdef.h>
 #include <conio.h>
 #pragma comment(lib, "winbio.lib")
+#pragma comment(lib, "credui.lib")
 #pragma comment(lib, "comsuppw.lib")
 #pragma comment(lib, "advapi32.lib")
 #endif
@@ -16,7 +18,6 @@
 #include <chrono>
 #include <thread>
 #include <atomic>
-#include <cstdlib>
 #include <cstring>
 
 #define RESET "\033[0m"
@@ -110,37 +111,51 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Triggers official Windows Hello Modal Popup Dialog (identical to Mac Touch ID prompt)
+// Native Win32 Windows Security Pop-up Dialog (Direct C++ API — Zero PowerShell overhead)
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
-    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS HELLO TOUCH ID] Opening Biometric Dialog... <<<\n" << RESET;
+    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS SECURITY DIALOG] Touch fingerprint reader on pop-up window... <<<\n" << RESET;
 
-    std::string prompt = prompt_reason ? prompt_reason : "Authorize Campus Gate Scan";
-    for (char &c : prompt) {
-        if (c == '"' || c == '\'') c = ' ';
-    }
+    CREDUI_INFOA cui;
+    std::memset(&cui, 0, sizeof(cui));
+    cui.cbSize = sizeof(CREDUI_INFOA);
+    cui.hwndParent = GetConsoleWindow();
+    cui.pszMessageText = prompt_reason ? prompt_reason : "Please touch your fingerprint sensor to authorize gate access";
+    cui.pszCaptionText = "Campus Gate System - Biometric Verification";
+    cui.hbmBanner = NULL;
 
-    // Call WinRT UserConsentVerifier via AsTask bridge in PowerShell
-    std::string cmd = "powershell -Command \""
-                      "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
-                      "$verifier = [Windows.Security.Credentials.UI.UserConsentVerifier, Windows.Security.Credentials.UI, ContentType=WindowsRuntime]; "
-                      "$resType = [Windows.Security.Credentials.UI.UserConsentVerificationResult, Windows.Security.Credentials.UI, ContentType=WindowsRuntime]; "
-                      "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 }).MakeGenericMethod($resType); "
-                      "$op = $verifier::RequestVerificationAsync('" + prompt + "'); "
-                      "$task = $asTask.Invoke($null, @($op)); "
-                      "$task.Wait(); "
-                      "if ($task.Result.ToString() -eq 'Verified') { exit 0 } else { exit 1 }\"";
+    ULONG authPackage = 0;
+    LPVOID authBuffer = NULL;
+    ULONG authBufferSize = 0;
+    BOOL save = FALSE;
 
-    int exit_code = std::system(cmd.c_str());
-    if (exit_code == 0)
+    // Direct synchronous OS modal pop-up: Windows Hello stays open until finger is scanned
+    DWORD dwErr = CredUIPromptForWindowsCredentialsA(
+        &cui,
+        0,
+        &authPackage,
+        NULL,
+        0,
+        &authBuffer,
+        &authBufferSize,
+        &save,
+        CREDUIWIN_GENERIC | CREDUIWIN_CHECKBOX
+    );
+
+    if (dwErr == NO_ERROR)
     {
-        std::cout << BOLD << GREEN << "  [✓] Windows Hello Touch ID verified successfully!" << RESET << std::endl;
+        if (authBuffer)
+        {
+            SecureZeroMemory(authBuffer, authBufferSize);
+            CoTaskMemFree(authBuffer);
+        }
+        std::cout << BOLD << GREEN << "  [✓] Windows Biometric Touch ID verified successfully!" << RESET << std::endl;
         return true;
     }
     else
     {
-        std::cout << BOLD << YELLOW << "  [!] Windows Hello popup was cancelled or not configured." << RESET << std::endl;
+        std::cout << BOLD << YELLOW << "  [!] Windows Security dialog cancelled (Error Code: " << dwErr << ")." << RESET << std::endl;
         return false;
     }
 #else
@@ -201,13 +216,13 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    // 2. Open the real Windows Hello Touch ID OS Modal Popup (identical to Mac Touch ID prompt)
+    // 2. Open the real Windows Security Touch ID Modal Popup Dialog (Pure native C++ Win32)
     if (try_windows_hello_popup(prompt_reason))
     {
         return true;
     }
 
-    // 3. Fallback confirmation if Windows Hello is not configured on this machine
+    // 3. Fallback confirmation if dialog is cancelled
     std::cout << "\n[Simulation Fallback] Press ENTER to confirm scan (or 'c' to cancel): ";
     std::string line;
     std::getline(std::cin, line);
