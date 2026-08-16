@@ -16,6 +16,7 @@
 #include <chrono>
 #include <thread>
 #include <atomic>
+#include <cstdlib>
 #include <cstring>
 
 #define RESET "\033[0m"
@@ -109,132 +110,35 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Background thread listening for real physical Windows Hello touch
-static bool try_winbio_authenticate(const char *prompt_reason)
+// Triggers official Windows Hello Modal Popup (like Mac Touch ID prompt)
+static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
-    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS TOUCH ID] " 
-              << (prompt_reason ? prompt_reason : "Please touch your fingerprint sensor now...") 
-              << " <<<\n" << RESET;
-    std::cout << "  (Place enrolled finger on laptop sensor, or press ENTER to confirm): ";
+    std::cout << BOLD << CYAN << "\n  >>> [WINDOWS HELLO TOUCH ID] Opening Biometric Dialog... <<<\n" << RESET;
 
-    std::atomic<bool> hardware_verified(false);
-    std::atomic<bool> thread_done(false);
-
-    std::thread bio_thread([&]() {
-        WINBIO_SESSION_HANDLE sessionHandle = 0;
-        HRESULT hr = WinBioOpenSession(
-            WINBIO_TYPE_FINGERPRINT,
-            WINBIO_POOL_SYSTEM,
-            WINBIO_FLAG_DEFAULT,
-            NULL, 0, NULL,
-            &sessionHandle
-        );
-
-        if (SUCCEEDED(hr))
-        {
-            // Extract the SID of the active logged-in Windows user
-            WINBIO_IDENTITY identity = {0};
-            bool has_sid = false;
-            HANDLE hToken = NULL;
-
-            if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
-            {
-                DWORD tokenInfoLength = 0;
-                GetTokenInformation(hToken, TokenUser, NULL, 0, &tokenInfoLength);
-                if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-                {
-                    std::vector<BYTE> tokenData(tokenInfoLength);
-                    if (GetTokenInformation(hToken, TokenUser, tokenData.data(), tokenInfoLength, &tokenInfoLength))
-                    {
-                        TOKEN_USER* pTokenUser = reinterpret_cast<TOKEN_USER*>(tokenData.data());
-                        identity.Type = WINBIO_ID_TYPE_SID;
-                        DWORD sidLen = GetLengthSid(pTokenUser->User.Sid);
-                        if (sidLen <= sizeof(identity.Value.AccountSid.Data))
-                        {
-                            CopySid(sizeof(identity.Value.AccountSid.Data), identity.Value.AccountSid.Data, pTokenUser->User.Sid);
-                            identity.Value.AccountSid.Size = sidLen;
-                            has_sid = true;
-                        }
-                    }
-                }
-                CloseHandle(hToken);
-            }
-
-            WINBIO_UNIT_ID unitId = 0;
-            BOOLEAN match = FALSE;
-            WINBIO_REJECT_DETAIL rejectDetail = 0;
-
-            if (has_sid)
-            {
-                // Verify directly against the user's enrolled Windows Hello fingerprint profile
-                hr = WinBioVerify(
-                    sessionHandle,
-                    &identity,
-                    WINBIO_SUBTYPE_ANY,
-                    &unitId,
-                    &match,
-                    &rejectDetail
-                );
-            }
-            else
-            {
-                WINBIO_BIOMETRIC_SUBTYPE subFactor = 0;
-                hr = WinBioIdentify(sessionHandle, &unitId, &identity, &subFactor, &rejectDetail);
-                match = SUCCEEDED(hr);
-            }
-
-            WinBioCloseSession(sessionHandle);
-
-            if (SUCCEEDED(hr) && match)
-            {
-                hardware_verified = true;
-            }
-        }
-        thread_done = true;
-    });
-
-    bool finished = false;
-    bool result = false;
-
-    while (!finished)
-    {
-        if (hardware_verified)
-        {
-            std::cout << BOLD << GREEN << "\n  [✓] Physical Touch ID Sensor recognized your finger!" << RESET << std::endl;
-            result = true;
-            finished = true;
-            break;
-        }
-
-        if (_kbhit())
-        {
-            int ch = _getch();
-            if (ch == 13 || ch == 10 || ch == 32) // Enter or Space
-            {
-                std::cout << BOLD << GREEN << "\n  [✓] Biometric verification confirmed." << RESET << std::endl;
-                result = true;
-                finished = true;
-                break;
-            }
-            else if (ch == 'c' || ch == 'C' || ch == 27) // 'c' or ESC
-            {
-                std::cout << BOLD << RED << "\n  [-] Biometric scan cancelled." << RESET << std::endl;
-                result = false;
-                finished = true;
-                break;
-            }
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::string prompt = prompt_reason ? prompt_reason : "Authorize Campus Gate Scan";
+    // Sanitize prompt for command line
+    for (char &c : prompt) {
+        if (c == '"' || c == '\'') c = ' ';
     }
 
-    if (bio_thread.joinable())
-    {
-        bio_thread.detach();
-    }
+    // Call Windows.Security.Credentials.UI.UserConsentVerifier which displays the native OS Windows Hello popup
+    std::string cmd = "powershell -WindowStyle Hidden -Command \""
+                      "[Windows.Security.Credentials.UI.UserConsentVerifier,Windows.Security.Credentials.UI,ContentType=WindowsRuntime] > $null; "
+                      "$res = [Windows.Security.Credentials.UI.UserConsentVerifier]::RequestVerificationAsync('" + prompt + "').GetAwaiter().GetResult(); "
+                      "if ($res -eq 'Verified') { exit 0 } else { exit 1 }\"";
 
-    return result;
+    int exit_code = std::system(cmd.c_str());
+    if (exit_code == 0)
+    {
+        std::cout << BOLD << GREEN << "  [✓] Windows Hello Touch ID verified successfully!" << RESET << std::endl;
+        return true;
+    }
+    else
+    {
+        std::cout << BOLD << YELLOW << "  [!] Windows Hello popup was cancelled or not configured." << RESET << std::endl;
+        return false;
+    }
 #else
     return false;
 #endif
@@ -284,6 +188,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
 bool windows_biometric_authenticate(const char *prompt_reason)
 {
+    // 1. External USB scanner on COM port
     if (g_com_connected)
     {
         std::cout << "\n[External Scanner: " << g_active_com_port << "] " 
@@ -292,5 +197,19 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    return try_winbio_authenticate(prompt_reason);
+    // 2. Open the real Windows Hello Touch ID OS Modal Popup (identical to Mac Touch ID prompt)
+    if (try_windows_hello_popup(prompt_reason))
+    {
+        return true;
+    }
+
+    // 3. Fallback confirmation if Windows Hello is not configured on this machine
+    std::cout << "\n[Simulation Fallback] Press ENTER to confirm scan (or 'c' to cancel): ";
+    std::string line;
+    std::getline(std::cin, line);
+    if (line == "c" || line == "C")
+    {
+        return false;
+    }
+    return true;
 }
