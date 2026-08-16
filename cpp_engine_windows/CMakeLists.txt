@@ -4,6 +4,9 @@ project(gate_engine C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Suppress MSVC legacy CRT warnings
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
 # Source files for Windows Engine v2.0
 set(ENGINE_SOURCES
     src/serializer.cpp

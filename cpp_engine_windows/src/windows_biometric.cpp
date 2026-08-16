@@ -24,8 +24,14 @@ static HANDLE g_h_serial = INVALID_HANDLE_VALUE;
 static std::string HResultMessage(HRESULT hr)
 {
     _com_error err(hr);
-    std::wstring wmsg = err.ErrorMessage();
-    return std::string(wmsg.begin(), wmsg.end());
+    const TCHAR* msg = err.ErrorMessage();
+    if (!msg) return "HRESULT: " + std::to_string(hr);
+#ifdef UNICODE
+    std::wstring ws(msg);
+    return std::string(ws.begin(), ws.end());
+#else
+    return std::string(msg);
+#endif
 }
 #endif
 
@@ -126,9 +132,12 @@ static bool try_winbio_authenticate(const char *prompt_reason)
 
     std::cout << "[Windows Hello] " << (prompt_reason ? prompt_reason : "Please touch your fingerprint sensor...") << std::endl;
 
+    WINBIO_UNIT_ID unitId = 0;
     WINBIO_IDENTITY identity = {0};
     WINBIO_BIOMETRIC_SUBTYPE subFactor = 0;
-    hr = WinBioIdentify(sessionHandle, &identity, &subFactor, NULL);
+    WINBIO_REJECT_DETAIL rejectDetail = 0;
+
+    hr = WinBioIdentify(sessionHandle, &unitId, &identity, &subFactor, &rejectDetail);
 
     WinBioCloseSession(sessionHandle);
     return SUCCEEDED(hr);
@@ -147,7 +156,6 @@ bool windows_capture_template(uint8_t *template_out, int length)
     {
         std::cout << "👉 [Windows Hardware] Please place your finger on the optical/capacitive scanner..." << std::endl;
 
-        // Command packet for GenImg: EF 01 FF FF FF FF 01 00 03 01 00 05
         uint8_t gen_img[] = {0xEF, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x03, 0x01, 0x00, 0x05};
         DWORD bw = 0;
 
@@ -162,7 +170,6 @@ bool windows_capture_template(uint8_t *template_out, int length)
             {
                 std::cout << "  [✓] Finger detected and captured from hardware!" << std::endl;
                 
-                // Read template data
                 uint8_t up_char[] = {0xEF, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0x01, 0x00, 0x04, 0x08, 0x01, 0x00, 0x0E};
                 WriteFile(g_h_serial, up_char, sizeof(up_char), &bw, NULL);
                 
@@ -175,7 +182,6 @@ bool windows_capture_template(uint8_t *template_out, int length)
     }
 #endif
 
-    // Fallback: Generate mock vector so CLI workflow never crashes
     std::cout << "[Simulator] Generated synthetic 512-byte biometric template." << std::endl;
     for (int i = 0; i < length; ++i)
     {
@@ -186,7 +192,6 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
 bool windows_biometric_authenticate(const char *prompt_reason)
 {
-    // Auto-detect COM port if available and not yet connected
     if (!g_com_connected)
     {
         auto ports = windows_list_com_ports();
@@ -196,7 +201,6 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         }
     }
 
-    // 1. Try Hardware Serial Scanner
     if (g_com_connected)
     {
         std::cout << "\n[Windows Scanner: " << g_active_com_port << "] " 
@@ -205,13 +209,11 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    // 2. Try Windows Hello (WinBio) if available
     if (try_winbio_authenticate(prompt_reason))
     {
         return true;
     }
 
-    // 3. Graceful Simulation Fallback (Ensures Windows CLI testing ALWAYS works)
     std::cout << "\n[Windows Biometric Mode] " << (prompt_reason ? prompt_reason : "Authenticate gate scan") << std::endl;
     std::cout << "  (No hardware scanner detected on COM ports & Windows Hello not configured)" << std::endl;
     std::cout << "  >> Press ENTER to confirm biometric scan simulation (or 'c' to cancel): ";
