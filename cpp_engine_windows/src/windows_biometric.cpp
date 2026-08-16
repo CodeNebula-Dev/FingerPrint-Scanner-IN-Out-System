@@ -111,18 +111,22 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Native Win32 Windows Security Pop-up Dialog (Direct C++ API — Zero PowerShell overhead)
+// Native Win32 Windows Security Pop-up Dialog (Direct C++ API — Desktop Modal)
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
     std::cout << BOLD << CYAN << "\n  >>> [WINDOWS SECURITY DIALOG] Touch fingerprint reader on pop-up window... <<<\n" << RESET;
 
-    CREDUI_INFOA cui;
+    std::string msg = prompt_reason ? prompt_reason : "Please touch your fingerprint sensor to authorize gate access";
+    std::wstring wmsg(msg.begin(), msg.end());
+    std::wstring wtitle = L"Campus Gate System - Windows Hello Touch ID";
+
+    CREDUI_INFOW cui;
     std::memset(&cui, 0, sizeof(cui));
-    cui.cbSize = sizeof(CREDUI_INFOA);
-    cui.hwndParent = GetConsoleWindow();
-    cui.pszMessageText = prompt_reason ? prompt_reason : "Please touch your fingerprint sensor to authorize gate access";
-    cui.pszCaptionText = "Campus Gate System - Biometric Verification";
+    cui.cbSize = sizeof(CREDUI_INFOW);
+    cui.hwndParent = NULL; // Desktop modal window
+    cui.pszMessageText = wmsg.c_str();
+    cui.pszCaptionText = wtitle.c_str();
     cui.hbmBanner = NULL;
 
     ULONG authPackage = 0;
@@ -130,8 +134,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
     ULONG authBufferSize = 0;
     BOOL save = FALSE;
 
-    // Direct synchronous OS modal pop-up: Windows Hello stays open until finger is scanned
-    DWORD dwErr = CredUIPromptForWindowsCredentialsA(
+    DWORD dwErr = CredUIPromptForWindowsCredentialsW(
         &cui,
         0,
         &authPackage,
@@ -140,7 +143,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
         &authBuffer,
         &authBufferSize,
         &save,
-        CREDUIWIN_GENERIC | CREDUIWIN_CHECKBOX
+        CREDUIWIN_GENERIC
     );
 
     if (dwErr == NO_ERROR)
@@ -155,7 +158,7 @@ static bool try_windows_hello_popup(const char *prompt_reason)
     }
     else
     {
-        std::cout << BOLD << YELLOW << "  [!] Windows Security dialog cancelled (Error Code: " << dwErr << ")." << RESET << std::endl;
+        std::cout << BOLD << YELLOW << "  [!] Windows Security dialog closed (Status Code: " << dwErr << ")." << RESET << std::endl;
         return false;
     }
 #else
