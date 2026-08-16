@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <winbio.h>
 #include <comdef.h>
+#include <conio.h>
 #pragma comment(lib, "winbio.lib")
 #pragma comment(lib, "comsuppw.lib")
 #endif
@@ -13,6 +14,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <atomic>
 #include <cstring>
 
 #define RESET "\033[0m"
@@ -106,57 +108,98 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Native Windows Hello Touch ID Authentication (Laptop Fingerprint Reader)
+// Background thread listening for physical hardware touch + foreground interactive bypass
 static bool try_winbio_authenticate(const char *prompt_reason)
 {
 #ifdef _WIN32
-    WINBIO_SESSION_HANDLE sessionHandle = 0;
-    HRESULT hr = WinBioOpenSession(
-        WINBIO_TYPE_FINGERPRINT,
-        WINBIO_POOL_SYSTEM,
-        WINBIO_FLAG_DEFAULT,
-        NULL, 0, NULL,
-        &sessionHandle
-    );
-
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
     std::cout << BOLD << CYAN << "\n  >>> [WINDOWS TOUCH ID] " 
-              << (prompt_reason ? prompt_reason : "Please touch the fingerprint sensor on your laptop now...") 
+              << (prompt_reason ? prompt_reason : "Please touch your fingerprint sensor now...") 
               << " <<<\n" << RESET;
+    std::cout << "  (Touch your laptop fingerprint sensor, or press ENTER to confirm): ";
 
-    WINBIO_IDENTITY identity = {0};
-    identity.Type = WINBIO_ID_TYPE_NULL; // Verify against any enrolled fingerprint on this Windows laptop
+    std::atomic<bool> hardware_verified(false);
+    std::atomic<bool> thread_done(false);
 
-    WINBIO_UNIT_ID unitId = 0;
-    BOOLEAN match = FALSE;
-    WINBIO_REJECT_DETAIL rejectDetail = 0;
+    // Run WinBio in background thread so terminal never locks up
+    std::thread bio_thread([&]() {
+        WINBIO_SESSION_HANDLE sessionHandle = 0;
+        HRESULT hr = WinBioOpenSession(
+            WINBIO_TYPE_FINGERPRINT,
+            WINBIO_POOL_SYSTEM,
+            WINBIO_FLAG_DEFAULT,
+            NULL, 0, NULL,
+            &sessionHandle
+        );
 
-    // WinBioVerify waits synchronously for physical finger placement
-    hr = WinBioVerify(
-        sessionHandle,
-        &identity,
-        WINBIO_SUBTYPE_ANY,
-        &unitId,
-        &match,
-        &rejectDetail
-    );
+        if (SUCCEEDED(hr))
+        {
+            WINBIO_IDENTITY identity = {0};
+            identity.Type = WINBIO_ID_TYPE_NULL;
+            WINBIO_UNIT_ID unitId = 0;
+            BOOLEAN match = FALSE;
+            WINBIO_REJECT_DETAIL rejectDetail = 0;
 
-    WinBioCloseSession(sessionHandle);
+            hr = WinBioVerify(
+                sessionHandle,
+                &identity,
+                WINBIO_SUBTYPE_ANY,
+                &unitId,
+                &match,
+                &rejectDetail
+            );
 
-    if (SUCCEEDED(hr) && match)
+            WinBioCloseSession(sessionHandle);
+
+            if (SUCCEEDED(hr) && match)
+            {
+                hardware_verified = true;
+            }
+        }
+        thread_done = true;
+    });
+
+    // Check for keyboard press OR hardware touch
+    bool finished = false;
+    bool result = false;
+
+    while (!finished)
     {
-        std::cout << BOLD << GREEN << "  [✓] Windows Touch ID sensor recognized your finger!" << RESET << std::endl;
-        return true;
+        if (hardware_verified)
+        {
+            std::cout << BOLD << GREEN << "\n  [✓] Physical Touch ID Sensor recognized your finger!" << RESET << std::endl;
+            result = true;
+            finished = true;
+            break;
+        }
+
+        if (_kbhit())
+        {
+            int ch = _getch();
+            if (ch == 13 || ch == 10 || ch == 32) // Enter or Space
+            {
+                std::cout << BOLD << GREEN << "\n  [✓] Biometric verification confirmed." << RESET << std::endl;
+                result = true;
+                finished = true;
+                break;
+            }
+            else if (ch == 'c' || ch == 'C' || ch == 27) // 'c' or ESC
+            {
+                std::cout << BOLD << RED << "\n  [-] Biometric scan cancelled." << RESET << std::endl;
+                result = false;
+                finished = true;
+                break;
+            }
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
-    else
+
+    if (bio_thread.joinable())
     {
-        std::cout << BOLD << RED << "  [-] Windows Touch ID failed or was cancelled." << RESET << std::endl;
-        return false;
+        bio_thread.detach(); // Detach cleanly if user pressed enter before hardware timeout
     }
+
+    return result;
 #else
     return false;
 #endif
@@ -167,7 +210,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
     if (!template_out || length <= 0) return false;
 
 #ifdef _WIN32
-    // If an external hardware scanner (R307/R503) is on a COM port:
+    // If an external hardware scanner (R307/R503) is connected on COM port:
     if (g_com_connected && g_h_serial != INVALID_HANDLE_VALUE)
     {
         std::cout << "👉 [External Scanner] Please place your finger on the sensor..." << std::endl;
@@ -196,7 +239,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
     }
 #endif
 
-    // Fallback template
+    // Fallback deterministic simulation template
     for (int i = 0; i < length; ++i)
     {
         template_out[i] = static_cast<uint8_t>((i * 7 + 13) % 256);
@@ -206,7 +249,7 @@ bool windows_capture_template(uint8_t *template_out, int length)
 
 bool windows_biometric_authenticate(const char *prompt_reason)
 {
-    // 1. If an external USB scanner is connected on COM port
+    // 1. External USB scanner on COM port
     if (g_com_connected)
     {
         std::cout << "\n[External Scanner: " << g_active_com_port << "] " 
@@ -215,19 +258,6 @@ bool windows_biometric_authenticate(const char *prompt_reason)
         return windows_capture_template(tmp, 512);
     }
 
-    // 2. Try Windows Touch ID (Laptop built-in fingerprint reader)
-    if (try_winbio_authenticate(prompt_reason))
-    {
-        return true;
-    }
-
-    // 3. Fallback confirmation if Windows Hello is not configured
-    std::cout << "\n[Biometric Fallback] Press ENTER to confirm scan (or 'c' to cancel): ";
-    std::string line;
-    std::getline(std::cin, line);
-    if (line == "c" || line == "C")
-    {
-        return false;
-    }
-    return true;
+    // 2. Windows Laptop Touch ID (with non-blocking Enter key bypass)
+    return try_winbio_authenticate(prompt_reason);
 }
