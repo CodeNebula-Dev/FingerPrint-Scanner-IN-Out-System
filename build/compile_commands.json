@@ -1,0 +1,50 @@
+[
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\serializer.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\serializer.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/serializer.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/serializer.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\master_db.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\master_db.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/master_db.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/master_db.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\daily_log.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\daily_log.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/daily_log.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/daily_log.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\home_db.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\home_db.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/home_db.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/home_db.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\indexer.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\indexer.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/indexer.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/indexer.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\fingerprint.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\fingerprint.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/fingerprint.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/fingerprint.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe -Dgate_engine_EXPORTS @CMakeFiles\\gate_engine.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_engine.dir\\src\\windows_biometric.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\windows_biometric.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/windows_biometric.cpp",
+  "output": "CMakeFiles/gate_engine.dir/src/windows_biometric.cpp.obj"
+},
+{
+  "directory": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles\\gate_cli.dir\\includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\gate_cli.dir\\src\\main_windows.cpp.obj -c C:\\Users\\alluy\\OneDrive\\Documents\\GitHub\\FingerPrint-Scanner-IN-Out-System\\cpp_engine_windows\\src\\main_windows.cpp",
+  "file": "C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/src/main_windows.cpp",
+  "output": "CMakeFiles/gate_cli.dir/src/main_windows.cpp.obj"
+}
+]

@@ -1,0 +1,3 @@
+"C:\Program Files\CMake\bin\cmake.exe" -E rm -f CMakeFiles\gate_cli.dir/objects.a
+C:\MinGW\bin\ar.exe qc CMakeFiles\gate_cli.dir/objects.a @CMakeFiles\gate_cli.dir\objects1.rsp
+C:\MinGW\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\gate_cli.dir/objects.a -Wl,--no-whole-archive -o gate_cli.exe -Wl,--out-implib,libgate_cli.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\gate_cli.dir\linkLibs.rsp

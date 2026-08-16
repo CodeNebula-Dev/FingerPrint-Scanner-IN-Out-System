@@ -1,0 +1,4 @@
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build/CMakeFiles/gate_engine.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build/CMakeFiles/gate_cli.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build/CMakeFiles/edit_cache.dir
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/build/CMakeFiles/rebuild_cache.dir
