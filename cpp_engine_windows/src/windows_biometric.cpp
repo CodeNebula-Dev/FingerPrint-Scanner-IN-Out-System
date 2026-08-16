@@ -110,7 +110,7 @@ bool windows_set_com_port(const char *port_name, int baudrate)
 #endif
 }
 
-// Triggers official Windows Hello Modal Popup (identical to Mac Touch ID prompt)
+// Triggers official Windows Hello Modal Popup Dialog (identical to Mac Touch ID prompt)
 static bool try_windows_hello_popup(const char *prompt_reason)
 {
 #ifdef _WIN32
@@ -121,13 +121,16 @@ static bool try_windows_hello_popup(const char *prompt_reason)
         if (c == '"' || c == '\'') c = ' ';
     }
 
-    // Use WinRT async polling loop compatible with standard Windows PowerShell 5.1 and 7+
+    // Call WinRT UserConsentVerifier via AsTask bridge in PowerShell
     std::string cmd = "powershell -Command \""
-                      "[Windows.Security.Credentials.UI.UserConsentVerifier,Windows.Security.Credentials.UI,ContentType=WindowsRuntime] > $null; "
-                      "$op = [Windows.Security.Credentials.UI.UserConsentVerifier]::RequestVerificationAsync('" + prompt + "'); "
-                      "while ($op.Status.ToString() -eq 'Started') { Start-Sleep -Milliseconds 100 }; "
-                      "$res = $op.GetResults(); "
-                      "if ($res.ToString() -eq 'Verified') { exit 0 } else { exit 1 }\"";
+                      "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
+                      "$verifier = [Windows.Security.Credentials.UI.UserConsentVerifier, Windows.Security.Credentials.UI, ContentType=WindowsRuntime]; "
+                      "$resType = [Windows.Security.Credentials.UI.UserConsentVerificationResult, Windows.Security.Credentials.UI, ContentType=WindowsRuntime]; "
+                      "$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.IsGenericMethod -and $_.GetParameters().Count -eq 1 }).MakeGenericMethod($resType); "
+                      "$op = $verifier::RequestVerificationAsync('" + prompt + "'); "
+                      "$task = $asTask.Invoke($null, @($op)); "
+                      "$task.Wait(); "
+                      "if ($task.Result.ToString() -eq 'Verified') { exit 0 } else { exit 1 }\"";
 
     int exit_code = std::system(cmd.c_str());
     if (exit_code == 0)
