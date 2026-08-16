@@ -1,0 +1,10 @@
+^C:\USERS\ALLUY\ONEDRIVE\DOCUMENTS\GITHUB\FINGERPRINT-SCANNER-IN-OUT-SYSTEM\CPP_ENGINE_WINDOWS\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows -BC:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build --check-stamp-file C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

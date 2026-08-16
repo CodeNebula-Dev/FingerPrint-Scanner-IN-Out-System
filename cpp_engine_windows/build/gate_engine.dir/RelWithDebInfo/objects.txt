@@ -1,0 +1,7 @@
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/serializer.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/master_db.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/daily_log.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/home_db.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/indexer.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/fingerprint.obj
+C:/Users/alluy/OneDrive/Documents/GitHub/FingerPrint-Scanner-IN-Out-System/cpp_engine_windows/build/gate_engine.dir/RelWithDebInfo/windows_biometric.obj

@@ -26,6 +26,7 @@ include_directories(include)
 
 # Shared library
 add_library(gate_engine SHARED ${ENGINE_SOURCES})
+set_target_properties(gate_engine PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Link WinBio (fingerprint biometrics) and comsuppw (for _com_error,
 # used to turn HRESULTs into readable messages)

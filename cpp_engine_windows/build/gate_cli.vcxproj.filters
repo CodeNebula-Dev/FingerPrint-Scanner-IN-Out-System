@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\alluy\OneDrive\Documents\GitHub\FingerPrint-Scanner-IN-Out-System\cpp_engine_windows\src\main_windows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\alluy\OneDrive\Documents\GitHub\FingerPrint-Scanner-IN-Out-System\cpp_engine_windows\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1C348A04-E6C5-3F8F-9F57-5C00ECD9DA9B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
