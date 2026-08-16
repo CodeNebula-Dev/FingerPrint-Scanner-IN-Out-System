@@ -1,2 +1,107 @@
-cpp_engine/build/
+# ==============================================================================
+# Global Git Ignore — Campus Biometric Gate Entry Management System
+# ==============================================================================
+
+# OS & Editor Artifacts
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# C++ Build Artifacts & CMake Directories
+build/
+**/build/
+bin/
+**/bin/
+obj/
+**/obj/
+CMakeFiles/
+**/CMakeFiles/
+CMakeCache.txt
+**/CMakeCache.txt
+cmake_install.cmake
+**/cmake_install.cmake
+Makefile
+**/Makefile
+compile_commands.json
+**/compile_commands.json
+.cmake/
+**/.cmake/
+
+# Compiled Binary Objects & Libraries
+*.o
+*.o.d
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# Specific Build Output Executables
+gate_cli
+gate_cli_v2
+test_pipeline
+test_runner
+
+# Database & Runtime Generated Data (Must not pollute source control)
+db_root/
+**/db_root/
+test_db/
+**/test_db/
+hardware_test_db/
+**/hardware_test_db/
+Student_data/
+**/Student_data/
+Everyday_data/
+**/Everyday_data/
+Home_data/
+**/Home_data/
+Rejection_log/
+**/Rejection_log/
+*.dat
+*.key
+
+# Python Cache & Virtual Environments
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Node / Web App Dependencies (if any)
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# LaTeX auxiliary files (keep only .tex and final deliverables)
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.vrb
+*.synctex.gz
+*.fls
+*.fdb_latexmk
