@@ -19,7 +19,7 @@ Cancelable biometric encryption is a **template protection scheme** that transfo
 ### 1.2 Why Not Just Use AES or SHA-256?
 
 | Approach | Fatal Problem |
-|:---|:---|
+| :--- | :--- |
 | **AES Encryption** | Requires decryption for matching → raw biometric exposed in memory during every gate scan |
 | **SHA-256 Hashing** | Deterministic but extremely fragile → single bit of scan noise produces completely different hash (avalanche effect), making matching impossible |
 | **Cancelable BioHashing** ✓ | Preserves similarity structure in transformed domain → noisy scans still match correctly, raw biometric never exposed |
@@ -40,6 +40,7 @@ Engine v2.0 implements the **BioHashing** algorithm (Teoh, Ngo & Goh, 2004), cla
 ### 2.1 The Core Transformation
 
 Given:
+
 - $X \in \mathbb{R}^n$ — raw biometric feature vector (512 bytes normalized to $[0, 1]$)
 - $K$ — secret 64-bit seed (stored in `db_root/biohash.key`)
 - $R \in \mathbb{R}^{m \times n}$ — pseudo-random projection matrix generated from seed $K$
@@ -59,6 +60,7 @@ The mathematical foundation comes from the **Johnson–Lindenstrauss Lemma**: ra
 $$\Pr\left[ \left| \frac{\|R \cdot X_A - R \cdot X_B\|^2}{\|X_A - X_B\|^2} - 1 \right| > \epsilon \right] \leq 2 \exp\left(-\frac{m \epsilon^2}{4}\right)$$
 
 In practice, this means:
+
 - **Similar fingerprints** (small $\|X_A - X_B\|$) produce **similar BioHash codes** (small Hamming distance)
 - **Different fingerprints** (large $\|X_A - X_B\|$) produce **dissimilar BioHash codes** (large Hamming distance)
 - The binarization step loses some precision but makes the transformation **irreversible**
@@ -76,7 +78,7 @@ Computing $X$ from $Y = \text{sign}(R \cdot X)$ requires solving a system of $m$
 
 Each row $R_i$ of the projection matrix is generated independently using a seeded Mersenne Twister PRNG (`std::mt19937_64`):
 
-```
+```.txt
 Row Seed = Base_Seed XOR (row_index × 2654435761)
                                     ↑
                     Knuth's multiplicative hash constant
@@ -92,7 +94,7 @@ Each row is sampled from an $n$-dimensional standard normal distribution $\mathc
 ### 3.1 Module Files
 
 | File | Role |
-|:---|:---|
+| :--- | :--- |
 | `include/crypto_placeholder.h` | Public API: enums, structs, function declarations, constants |
 | `src/crypto_placeholder.cpp` | Full BioHashing implementation (projection, matching, re-keying, key management) |
 
@@ -100,12 +102,12 @@ Each row is sampled from an $n$-dimensional standard normal distribution $\mathc
 
 The 512-byte `encrypted_template` field in `StudentRecord` is partitioned as follows:
 
-```
+```.txt
     encrypted_template[512] Buffer Layout
     ┌─────────────────────────────────────────────────────────────┐
-    │  Bytes [0..63]   │  Binarized BioHash Code                 │
+    │  Bytes [0..63]   │  Binarized BioHash Code                  │
     │  (64 bytes)      │  512 bits packed, LSB-first per byte     │
-    │                  │  Used for: Hash indexing + matching       │
+    │                  │  Used for: Hash indexing + matching      │
     ├──────────────────┼──────────────────────────────────────────┤
     │  Bytes [64..511] │  Quantized Pre-Binarization Dot Products │
     │  (448 bytes)     │  224 × int16 values (scale factor 10000) │
@@ -119,7 +121,7 @@ The 512-byte `encrypted_template` field in `StudentRecord` is partitioned as fol
 
 ### 3.3 Full Enrollment Transform Pipeline
 
-```
+```.txt
                         ENROLLMENT TRANSFORM PIPELINE
 
     ┌──────────────────────────────────────────────────────────────────┐
@@ -130,8 +132,8 @@ The 512-byte `encrypted_template` field in `StudentRecord` is partitioned as fol
                                      ▼
     ┌──────────────────────────────────────────────────────────────────┐
     │ 1. NORMALIZE                                                     │
-    │    feature[i] = raw_input[i] / 255.0                             │
-    │    X ∈ R^512, each component ∈ [0.0, 1.0]                       │
+    │    feature[i] = raw_input[i] / 255.0                             |
+    │    X ∈ R^512, each component ∈ [0.0, 1.0]                        |
     └────────────────────────────────┬─────────────────────────────────┘
                                      │
                                      ▼
@@ -139,13 +141,13 @@ The 512-byte `encrypted_template` field in `StudentRecord` is partitioned as fol
     │ 2. RANDOM PROJECTION                                             │
     │    For each dimension i ∈ [0, 511]:                              │
     │      Generate unit-length random vector R_i from seed K          │
-    │      Compute P[i] = R_i · X (dot product)                       │
+    │      Compute P[i] = R_i · X (dot product)                        │
     └────────────────────────────────┬─────────────────────────────────┘
                                      │
                                      ▼
     ┌──────────────────────────────────────────────────────────────────┐
     │ 3. BINARIZE                                                      │
-    │    Y[i] = (P[i] >= 0) ? 1 : 0                                   │
+    │    Y[i] = (P[i] >= 0) ? 1 : 0                                    │
     │    Pack 512 bits → 64 bytes (LSB-first)                          │
     └────────────────────────────────┬─────────────────────────────────┘
                                      │
@@ -214,7 +216,7 @@ $$d_H(Y_{\text{live}}, Y_{\text{stored}}) = \sum_{i=0}^{511} Y_{\text{live}}[i] 
 $$\text{Confidence Score} = 1.0 - \frac{d_H}{512}$$
 
 | Scenario | Hamming Distance | Confidence Score |
-|:---|:---:|:---:|
+| :--- | :---: | :---: |
 | Identical templates (same finger, no noise) | 0 | 1.00 (100%) |
 | Same finger, minor scan noise | ~50–100 | 0.80–0.90 (80–90%) |
 | Same finger, significant noise | ~100–130 | 0.75–0.80 (75–80%) |
@@ -254,7 +256,7 @@ MatchScoreResult crypto_match_evaluate(
 
 The BioHashing encryption integrates seamlessly with the existing Dual-Tier Coarse-to-Fine matching architecture documented in `Hashing_Mechanics_Innovations_and_FailSafes.md`:
 
-```
+```.txt
     Live Scan → crypto_enroll_transform() → Transformed Template Y_live
                                                       │
                           ┌───────────────────────────┤
@@ -276,7 +278,7 @@ The BioHashing encryption integrates seamlessly with the existing Dual-Tier Coar
 
 The BioHash seed key is stored as a raw 8-byte binary file:
 
-```
+```.txt
 Location: <project_root>/db_root/biohash.key
 Format:   8 bytes, little-endian uint64_t
 Contents: PRNG seed for projection matrix generation
@@ -284,7 +286,7 @@ Contents: PRNG seed for projection matrix generation
 
 ### 5.2 Key Lifecycle
 
-```
+```.txt
                            KEY LIFECYCLE
 
     ┌──────────────────────────────────────────────────┐
@@ -329,7 +331,7 @@ uint64_t seed = (static_cast<uint64_t>(rd()) << 32) | static_cast<uint64_t>(rd()
 ### 5.4 Admin API for Key Management
 
 | Function | Purpose |
-|:---|:---|
+| :--- | :--- |
 | `crypto_init_key(db_root_path)` | Load or generate key on startup (called by `engine_init()`) |
 | `crypto_set_key(seed)` | Manually set key (for testing or admin override) |
 | `crypto_rotate_key(new_seed)` | Generate new key, persist, and return for admin logging |
@@ -346,6 +348,7 @@ The BioHashing implementation satisfies the three core requirements of the ISO/I
 > *"It shall be computationally infeasible to reconstruct the original biometric sample or template from the protected template."*
 
 **How we satisfy this:**
+
 - The binarization step $Y_i = \text{sign}(P_i)$ discards magnitude information
 - Recovering $X$ from $Y$ requires solving $m = 512$ binary half-space constraints in $n = 512$ dimensions
 - Without the seed $K$, the projection matrix $R$ is unknown, making the system fully underdetermined
@@ -356,6 +359,7 @@ The BioHashing implementation satisfies the three core requirements of the ISO/I
 > *"It shall be infeasible to determine whether two protected templates were derived from the same biometric source."*
 
 **How we satisfy this:**
+
 - Different seeds produce **statistically independent** projection matrices
 - Two BioHash codes from the same fingerprint under different keys have expected Hamming distance $\approx 256$ (random)
 - An attacker cannot correlate templates across systems using different keys
@@ -367,6 +371,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 > *"If a protected template is compromised, it shall be possible to create a new protected template from the same biometric source."*
 
 **How we satisfy this:**
+
 - `crypto_rekey()` uses stored pre-binarization dot products to re-project under a new key
 - New seed → new projection matrix → completely new BioHash code
 - **No re-scanning required**: The student's fingerprint does not need to be recaptured
@@ -375,7 +380,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 ### 6.4 Compliance Summary Table
 
 | ISO/IEC 24745 Property | Implementation Mechanism | Strength |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | **Irreversibility** | Binarization discards magnitude; unknown $R$ without seed | $O(2^{512})$ brute-force |
 | **Unlinkability** | Independent random projections per seed | Cross-system correlation ≈ 0 |
 | **Renewability** | Stored dot products enable re-keying without re-scan | Instant key rotation |
@@ -387,7 +392,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 ### 7.1 Threat Model & Attack Surface
 
 | Attack Vector | Attacker Has | Impact | Mitigation |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | **Stolen Database** | Encrypted templates only | Cannot reconstruct fingerprints (binarization is lossy) | Irreversibility property |
 | **Stolen Key File** | Seed $K$ only | Cannot generate valid templates without biometric | Key alone is useless without biometric data |
 | **Stolen Token** (Key + Templates) | Both $K$ and $Y$ | Theoretical reconstruction attack (underdetermined binary system) | Rotate key via `crypto_rotate_key()` → all old templates invalidated |
@@ -397,15 +402,18 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 ### 7.2 Quantitative Security Bounds
 
 **Brute-Force Key Search:**
+
 - Key space: $2^{64} \approx 1.84 \times 10^{19}$ possible seeds
 - At $10^9$ attempts/second: $\approx 584$ years to exhaust
 
 **Template Inversion (with known key):**
+
 - Must solve: Find $X \in [0, 1]^{512}$ such that $\text{sign}(R \cdot X) = Y$
 - This defines $2^{512}$ feasible regions in the feature space
 - Even with the key, the exact $X$ is unrecoverable — only a feasible region can be identified
 
 **Random Collision Probability:**
+
 - Two random BioHash codes match (all 512 bits identical): $p = 2^{-512} \approx 10^{-154}$
 - Above 75% threshold (Hamming distance ≤ 128 of 512): Binomial tail probability ≈ $10^{-13}$ for random inputs
 
@@ -423,7 +431,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 
 ### 8.1 How the Crypto Module Connects to the Engine
 
-```
+```.txt
                          ENGINE v2.0 MODULE DEPENDENCIES
 
     ┌─────────────┐          ┌─────────────────────────┐
@@ -466,7 +474,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 
 ### 8.2 Data Flow: Complete Gate Scan Transaction
 
-```
+```.txt
     1. Student places finger on scanner
     2. Scanner produces raw 512-byte template X
     3. fingerprint_match(X, 512) called
@@ -495,7 +503,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 ### 9.1 Constants
 
 | Constant | Value | Description |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `BIOHASH_PROJECTION_DIM` | 512 | Number of random projection dimensions / output bits |
 | `BIOHASH_SEED_SIZE` | 8 | Size of the seed key in bytes (64-bit) |
 | `TEMPLATE_SIZE` | 512 | Total encrypted template buffer size in bytes |
@@ -503,6 +511,7 @@ $$\text{Correlation}(Y^{K_1}, Y^{K_2}) \approx 0 \quad \text{for } K_1 \neq K_2$
 ### 9.2 Structures
 
 #### `BioHashConfig`
+
 ```cpp
 struct BioHashConfig {
     uint64_t seed;           // Secret seed for projection matrix PRNG
@@ -512,6 +521,7 @@ struct BioHashConfig {
 ```
 
 #### `MatchScoreResult`
+
 ```cpp
 struct MatchScoreResult {
     bool  is_matched;       // true if confidence >= threshold
@@ -522,7 +532,7 @@ struct MatchScoreResult {
 ### 9.3 Functions
 
 | Function | Signature | Returns |
-|:---|:---|:---|
+| :--- | :--- | :--- |
 | `crypto_init_key` | `(const string& db_root_path) → bool` | true if key loaded/generated |
 | `crypto_set_key` | `(uint64_t seed) → void` | — |
 | `crypto_rotate_key` | `(uint64_t& new_seed) → bool` | true if rotated successfully |
