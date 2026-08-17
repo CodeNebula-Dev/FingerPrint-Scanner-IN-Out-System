@@ -133,7 +133,7 @@ int main() {
         std::cout << "• Imposter #" << i << ": " 
                   << (imp_res.matched ? "❌ FALSE ACCEPTANCE (SECURITY BREACH)" : "✓ REJECTED (Access Denied)")
                   << " | Max Similarity: " << std::fixed << std::setprecision(1) << (imp_res.confidence_score * 100.0f) << "%"
-                  << " (Threshold: 75.0%)" << std::endl;
+                  << " (Threshold: 85.0%)" << std::endl;
     }
 
     // ------------------------------------------------------------------------

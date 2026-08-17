@@ -112,9 +112,9 @@ int main() {
 
         MatchResult imp_res = fingerprint_match(imposter_raw, TEMPLATE_SIZE);
         std::cout << "• Imposter #" << i << ": " 
-                  << (imp_res.matched ? "❌ FALSE ACCEPTANCE" : "✓ REJECTED (Access Denied)")
+                  << (imp_res.matched ? "❌ FALSE ACCEPTANCE (SECURITY BREACH)" : "✓ REJECTED (Access Denied)")
                   << " | Max Similarity: " << std::fixed << std::setprecision(1) << (imp_res.confidence_score * 100.0f) << "%"
-                  << " (Threshold: 75.0%)" << std::endl;
+                  << " (Threshold: 85.0%)" << std::endl;
     }
 
     print_banner("4. PARITY STATE MACHINE (DIRECTION INFERENCE)");

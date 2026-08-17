@@ -46,7 +46,7 @@ MatchResult fingerprint_match(const uint8_t* live_scan, int scan_length) {
 
     // 3. Retrieve all students for Level-2 evaluation
     auto all_students = student_list_all();
-    const float MATCH_THRESHOLD = 0.75f;
+    const float MATCH_THRESHOLD = 0.85f;
 
     for (const auto& candidate : all_students) {
         // Evaluate similarity in transformed domain via crypto_placeholder slot
