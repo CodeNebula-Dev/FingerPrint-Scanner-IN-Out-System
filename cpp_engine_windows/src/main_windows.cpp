@@ -58,13 +58,16 @@ bool is_after_curfew() {
   return false;
 }
 
-// Generate mock template data based on roll number
+#include <random>
+
+// Generate realistic deterministic 512-byte biometric feature vector based on roll number
 void generate_mock_template(const std::string &roll, uint8_t *template_out) {
-  std::memset(template_out, 0, 512);
-  // Simple reproducible mock template: fill with ascii values of the roll
-  // number repeating
+  std::hash<std::string> hasher;
+  size_t seed = hasher(roll);
+  std::mt19937 rng(static_cast<unsigned int>(seed));
+  std::uniform_int_distribution<int> dist(0, 255);
   for (size_t i = 0; i < 512; ++i) {
-    template_out[i] = static_cast<uint8_t>(roll[i % roll.length()]);
+    template_out[i] = static_cast<uint8_t>(dist(rng));
   }
 }
 
