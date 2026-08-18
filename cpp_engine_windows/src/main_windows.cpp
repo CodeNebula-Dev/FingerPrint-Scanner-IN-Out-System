@@ -151,9 +151,9 @@ void do_enroll() {
 
   student_add(student);
 
-  // Capture or generate raw template
+  // Generate & BioHash template to disk based on roll number
   uint8_t raw_template[512];
-  windows_capture_template(raw_template, 512);
+  generate_mock_template(student.roll_number, raw_template);
 
   if (fingerprint_enroll(student.roll_number, raw_template, 512)) {
     print_success("Student enrolled & BioHashed successfully on disk!");
