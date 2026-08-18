@@ -61,7 +61,16 @@ bool is_after_curfew() {
 #include <random>
 
 // Generate realistic deterministic 512-byte biometric feature vector based on roll number
-void generate_mock_template(const std::string &roll, uint8_t *template_out) {
+void generate_mock_template(const std::string &raw_roll, uint8_t *template_out) {
+  std::string roll = raw_roll;
+  // Trim whitespace
+  roll.erase(0, roll.find_first_not_of(" \t\r\n"));
+  roll.erase(roll.find_last_not_of(" \t\r\n") + 1);
+  // Lowercase for case-insensitive biometric key stability
+  for (char &c : roll) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+
   std::hash<std::string> hasher;
   size_t seed = hasher(roll);
   std::mt19937 rng(static_cast<unsigned int>(seed));

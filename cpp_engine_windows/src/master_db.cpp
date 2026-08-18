@@ -7,10 +7,28 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
 std::string g_root_path = "./db_root";
+
+static bool is_dat_file(const fs::path& path) {
+    std::string ext = path.extension().string();
+    for (char &c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return (ext == ".dat");
+}
+
+static bool match_stem(const fs::path& path, const std::string& target) {
+    std::string stem = path.stem().string();
+    if (stem.length() != target.length()) return false;
+    for (size_t i = 0; i < stem.length(); ++i) {
+        if (std::tolower(static_cast<unsigned char>(stem[i])) != std::tolower(static_cast<unsigned char>(target[i]))) {
+            return false;
+        }
+    }
+    return true;
+}
 
 bool engine_init(const char* project_root_path) {
     if (project_root_path && std::strlen(project_root_path) > 0) {
@@ -38,7 +56,7 @@ bool engine_init(const char* project_root_path) {
     std::string student_dir = g_root_path + "/Student_data";
     if (fs::exists(student_dir)) {
         for (const auto& entry : fs::recursive_directory_iterator(student_dir)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".dat") {
+            if (entry.is_regular_file() && is_dat_file(entry.path())) {
                 StudentRecord rec;
                 if (serializer_read_student(entry.path().string(), rec)) {
                     indexer_insert(rec.roll_number, rec.encrypted_template, TEMPLATE_SIZE);
@@ -93,11 +111,13 @@ bool student_update(const char* roll_number, const StudentRecord& updated_record
 }
 
 bool student_get(const char* roll_number, StudentRecord& record) {
+    if (!roll_number) return false;
+    std::string target = roll_number;
     std::string student_dir = g_root_path + "/Student_data";
     if (!fs::exists(student_dir)) return false;
 
     for (const auto& entry : fs::recursive_directory_iterator(student_dir)) {
-        if (entry.is_regular_file() && entry.path().stem().string() == roll_number) {
+        if (entry.is_regular_file() && match_stem(entry.path(), target) && is_dat_file(entry.path())) {
             return serializer_read_student(entry.path().string(), record);
         }
     }
@@ -106,11 +126,12 @@ bool student_get(const char* roll_number, StudentRecord& record) {
 
 std::vector<StudentRecord> student_list_by_batch(const char* batch) {
     std::vector<StudentRecord> list;
+    if (!batch) return list;
     std::string batch_dir = g_root_path + "/Student_data/" + std::string(batch);
 
     if (fs::exists(batch_dir)) {
         for (const auto& entry : fs::directory_iterator(batch_dir)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".dat") {
+            if (entry.is_regular_file() && is_dat_file(entry.path())) {
                 StudentRecord rec;
                 if (serializer_read_student(entry.path().string(), rec)) {
                     list.push_back(rec);
@@ -127,7 +148,7 @@ std::vector<StudentRecord> student_list_all() {
 
     if (fs::exists(student_dir)) {
         for (const auto& entry : fs::recursive_directory_iterator(student_dir)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".dat") {
+            if (entry.is_regular_file() && is_dat_file(entry.path())) {
                 StudentRecord rec;
                 if (serializer_read_student(entry.path().string(), rec)) {
                     list.push_back(rec);
@@ -161,6 +182,7 @@ int batch_promote_all() {
 }
 
 bool batch_delete(const char* batch) {
+    if (!batch) return false;
     std::string batch_dir = g_root_path + "/Student_data/" + std::string(batch);
     if (!fs::exists(batch_dir)) return false;
 
