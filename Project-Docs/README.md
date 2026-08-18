@@ -9,15 +9,18 @@
 ## 1. Executive Summary & Problem Statement
 
 ### 1.1 Campus Gate Entry Bottlenecks
+
 University campuses and educational institutions face severe operational and security challenges at physical gate access points:
+
 * **Manual Soft-Button Overhead**: Conventional commercial biometric terminals (ZKTeco, Hikvision) require students to physically select an "IN" or "OUT" direction button on a touchscreen prior to scanning. This manual selection introduces 3–5 seconds of user friction per scan, leading to severe gate bottlenecks during peak hours (e.g., morning classes, evening curfew cutoff).
 * **Display Wear & Touchscreen Degradation**: Constant physical interaction with capacitive/resistive touchscreens causes rapid hardware wear, touch misalignment, and high maintenance overhead.
-* ** Buddy Punching & Proxy Logging**: Paper registers and RFID proximity card tap systems allow card sharing and proxy attendance ("buddy punching"), rendering institutional security logs unreliable.
+* **Buddy Punching & Proxy Logging**: Paper registers and RFID proximity card tap systems allow card sharing and proxy attendance ("buddy punching"), rendering institutional security logs unreliable.
 * **Lack of Real-Time Leave & Curfew Reconciliation**: Paper logbooks and standalone access control devices fail to automatically reconcile long-term student home leaves with nightly curfew audits, creating false-alarm late flags and administrative overhead for hostel wardens.
 * **Biometric Data Privacy Exposure**: Baseline biometric databases store raw fingerprint minutiae arrays in plaintext. A stolen disk or process memory dump permanently compromises biometric identity without recourse.
 
 ### 1.2 Queueing Analysis ($\text{M/M/1}$ Model)
-Under peak arrival conditions ($\lambda \approx 30$ students/minute), standard biometric terminals requiring manual soft-button selection operating at mean service time $1/\mu \approx 6\,\text{seconds}$ result in a queue utilization factor $\rho = \frac{\lambda}{\mu} \approx 3.0$, causing queue collapse. 
+
+Under peak arrival conditions ($\lambda \approx 30$ students/minute), standard biometric terminals requiring manual soft-button selection operating at mean service time $1/\mu \approx 6\,\text{seconds}$ result in a queue utilization factor $\rho = \frac{\lambda}{\mu} \approx 3.0$, causing queue collapse.
 
 By eliminating button presses and optimizing C++ lookup latency (<0.5 ms for v1, ~1.0–2.0 ms for v2), our zero-friction scan-and-go system achieves mean service time $1/\mu \approx 0.5\,\text{seconds}$ (inclusive of optical sensor capture), reducing peak queue utilization to $\rho \approx 0.25$, completely eliminating gate choke points.
 
@@ -26,10 +29,11 @@ By eliminating button presses and optimizing C++ lookup latency (<0.5 ms for v1,
 ## 2. Core Technical Architecture & Innovations
 
 The system operates via a **decoupled dual-tier architecture**:
+
 1. **Low-Latency Bare-Metal C++ Engine** (`cpp_engine` / `cpp_engine_v2`): Handles binary serialization, in-memory FNV-1a hash indexing, biometric similarity calculation, daily log recording, and cancelable encryption domain transformations.
 2. **Administrative Python Application Layer** (`GUI-Application/`): Built with custom GUI panels (`Log`, `Out`, `Systems Control`, `Requests`, `Home`) providing warden oversight, dynamic leaves approval, curfew auditing, and date-range reporting over a C-ABI shared library interface.
 
-```
+```.txt
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        ADMINISTRATIVE PYTHON GUI                       │
 │    [ Log Panel ]  [ Out Panel ]  [ Home Leaves ]  [ Curfew Audit ]     │
@@ -61,6 +65,7 @@ The system operates via a **decoupled dual-tier architecture**:
 Instead of requiring manual direction selection or deploying expensive dual infrared beam-break sensors, travel direction is derived deterministically in software by combining **student residency metadata** (`is_hosteller`) with **gate scan count parity**.
 
 ### 3.1 Mathematical Formulation
+
 Let $n \in \mathbb{N}$ denote the total scan count recorded for a given student on the current date:
 
 * **Hosteller (Resides on Campus)**: Initial status at start of day is **INSIDE** campus.
@@ -120,6 +125,7 @@ std::strncpy(log_entry.status, status_str.c_str(), sizeof(log_entry.status) - 1)
 ## 4. Biometric Engine Evolution: Version 1.0 vs Version 2.0
 
 ### 4.1 Evolution Summary
+
 * **Engine v1.0 (`cpp_engine`)**: Performance baseline. Stores raw 512-byte fingerprint minutiae vectors in plaintext binary `.dat` files. Matching evaluates direct byte equality in RAM.
 * **Engine v2.0 (`cpp_engine_v2`)**: Security-hardened model aligned with **ISO/IEC 24745**. Introduces a modular transformation interface (`crypto_placeholder.h` / `crypto_placeholder.cpp`) that converts raw minutiae into non-invertible ciphertext vectors before disk write and matches strictly in the transformed domain.
 
@@ -162,6 +168,7 @@ graph TD
 ### 5.1 C++ Struct Layouts (`include/engine.h`)
 
 #### Student Master Record (`StudentRecord`)
+
 ```cpp
 struct StudentRecord {
     char roll_number[20];                       // Primary Key (e.g. "2026_CS_042")
@@ -176,6 +183,7 @@ struct StudentRecord {
 ```
 
 #### Daily Activity Log Record (`LogEntry`)
+
 ```cpp
 struct LogEntry {
     char roll_number[20];                       // Student Identifier
@@ -191,6 +199,7 @@ struct LogEntry {
 ```
 
 #### Home Leave Record (`HomeRecord`)
+
 ```cpp
 struct HomeRecord {
     char roll_number[20];                       // Student Identifier
@@ -203,7 +212,8 @@ struct HomeRecord {
 ```
 
 ### 5.2 File System Hierarchy
-```
+
+```.txt
 db_root/
 ├── Student_data/
 │   ├── 2024_batch/
@@ -225,6 +235,7 @@ db_root/
 ## 6. Step-by-Step Operating Procedures
 
 ### 6.1 Student Enrollment Procedure
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -247,6 +258,7 @@ sequenceDiagram
 ```
 
 ### 6.2 Gate Scan Verification & Actuation Procedure
+
 ```mermaid
 sequenceDiagram
     autonumber
@@ -273,6 +285,7 @@ sequenceDiagram
 ```
 
 ### 6.3 Home Leave Reconciliation Procedure
+
 1. **Leave Request Application**: Student requests multi-day leave via warden office.
 2. **Registry Entry**: Warden approves request in Python GUI (`Home Panel`), triggering `home_add(HomeRecord)`. The record is serialized to `Home_data/active_leaves.dat`.
 3. **Gate Departure**: Student scans fingerprint at gate. Parity state machine logs direction as `OUT`, purpose as `Home`.
@@ -280,6 +293,7 @@ sequenceDiagram
 5. **Return Processing**: Upon returning to campus, the gate scan logs direction as `IN` and automatically removes the record from `Home_data/active_leaves.dat` via `home_remove()`.
 
 ### 6.4 Key Revocation & Template Re-Keying Procedure
+
 1. **Security Event**: Administrator updates transformation key $K \to K'$ due to key lifecycle policies or server compromise.
 2. **Re-Key Execution**: Engine invokes `crypto_rekey(old_encrypted, new_encrypted, 512)` for each record in `Student_data/`.
 3. **Non-Invertible Transformation**: Stored encrypted templates are re-projected under key $K'$ without requiring students to physically return to the office or re-scan physical fingers.
