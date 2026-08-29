@@ -1,0 +1,10 @@
+[build-system]
+requires = ["scikit-build-core>=0.8.0", "pybind11>=2.11.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "fingerprint_engine"
+version = "2.0.0"
+description = "Biometric Fingerprint IN/OUT SYstem Engine"
+readme = "bridge_v2_readme.md"
+requires-python = ">=3.8"
